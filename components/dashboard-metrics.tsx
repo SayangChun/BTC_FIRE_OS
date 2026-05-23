@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   formatCurrency,
-  formatPercentage,
+  formatSignedCurrency,
+  formatSignedPercentage,
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type { DashboardMetrics } from "@/lib/types";
@@ -51,7 +52,7 @@ export function DashboardMetrics({ metrics, t }: DashboardMetricsProps) {
             }
             label={t.profitLoss}
             tone={isProfit ? "positive" : "negative"}
-            value={`${formatCurrency(metrics.profitLoss)} (${formatPercentage(
+            value={`${formatSignedCurrency(metrics.profitLoss)} (${formatSignedPercentage(
               metrics.profitLossPercentage,
             )})`}
           />

@@ -50,3 +50,50 @@ export type Ahr999Result = {
   recommendation: Ahr999Recommendation;
   lastUpdated: Date | null;
 };
+
+export type PriceProjectionScenario = "bear" | "base" | "bull";
+
+export type PriceProjectionPoint = {
+  year: number;
+  scenario: PriceProjectionScenario;
+  projectedPrice: number;
+  projectedPortfolioValue: number;
+  requiredBtcForFire: number;
+  fireProgress: number;
+  isFireReady: boolean;
+};
+
+export type Ahr999Zone = "low" | "normal" | "high";
+
+export type Ahr999Frequency = {
+  low: number;
+  normal: number;
+  high: number;
+  sampleDays: number;
+  lastUpdated: Date | null;
+};
+
+export type DcaPlanInput = {
+  lowDailyAmount: number;
+  normalDailyAmount: number;
+  highDailyAmount: number;
+};
+
+export type OtherAssetsInput = {
+  currentAmount: number;
+  annualReturnRate: number;
+};
+
+export type DcaFireProjection = {
+  expectedDailyDca: number;
+  expectedMonthlyDca: number;
+  currentFireGapValue: number;
+  currentFireGapBtc: number;
+  currentCombinedValue: number;
+  currentCombinedFireProgress: number;
+  projectedFireYears: number | null;
+  projectedFireDate: Date | null;
+  projectedBtcAtFire: number | null;
+  projectedOtherAssetsAtFire: number | null;
+  projectedValueAtFire: number | null;
+};

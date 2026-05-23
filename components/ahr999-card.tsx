@@ -96,6 +96,8 @@ export function Ahr999Card({ ahr999, language, t }: Ahr999CardProps) {
             }
           />
         </div>
+
+        <p className="text-xs leading-5 text-muted">{t.methodology}</p>
       </CardContent>
     </Card>
   );

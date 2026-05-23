@@ -18,7 +18,7 @@ export function calculateProfitLoss(
   portfolioValue: number,
   costBasis: number,
 ): number {
-  return safeNumber(portfolioValue) - safeNumber(costBasis);
+  return signedNumber(portfolioValue) - signedNumber(costBasis);
 }
 
 export function calculateProfitLossPercentage(
@@ -29,7 +29,7 @@ export function calculateProfitLossPercentage(
     return 0;
   }
 
-  return profitLoss / costBasis;
+  return signedNumber(profitLoss) / costBasis;
 }
 
 export function calculateFireTarget(
@@ -94,6 +94,15 @@ export function formatCurrency(value: number): string {
   }).format(safeNumber(value));
 }
 
+export function formatSignedCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+    signDisplay: "exceptZero",
+  }).format(signedNumber(value));
+}
+
 export function formatBtc(value: number): string {
   return `${safeNumber(value).toLocaleString("en-US", {
     maximumFractionDigits: 4,
@@ -107,8 +116,20 @@ export function formatPercentage(value: number): string {
   }).format(safeNumber(value));
 }
 
+export function formatSignedPercentage(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "percent",
+    maximumFractionDigits: 1,
+    signDisplay: "exceptZero",
+  }).format(signedNumber(value));
+}
+
 function safeNumber(value: number): number {
   return Number.isFinite(value) ? Math.max(value, 0) : 0;
+}
+
+function signedNumber(value: number): number {
+  return Number.isFinite(value) ? value : 0;
 }
 
 function clampWithdrawalRate(value: number): number {

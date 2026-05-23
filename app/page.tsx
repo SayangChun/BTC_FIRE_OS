@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Bitcoin } from "lucide-react";
 
 import { AccumulationChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
 import { DashboardMetrics } from "@/components/dashboard-metrics";
+import { DcaFirePlannerCard } from "@/components/dca-fire-planner-card";
 import { FireCalculator } from "@/components/fire-calculator";
+import { FutureFireCard } from "@/components/future-fire-card";
 import { PortfolioInput } from "@/components/portfolio-input";
 import { ScenarioSimulator } from "@/components/scenario-simulator";
 import {
@@ -19,6 +21,11 @@ import {
   formatBtc,
   formatCurrency,
 } from "@/lib/calculations";
+import { projectDcaFire } from "@/lib/dca-fire";
+import {
+  buildPriceProjection,
+  findFirstFireYear,
+} from "@/lib/price-projection";
 import {
   BTC_PRICE_SCENARIOS,
   MOCK_ACCUMULATION_HISTORY,
@@ -32,15 +39,49 @@ import {
 import { cn } from "@/lib/utils";
 import { useBtcPrice, type BtcPriceStatus } from "@/hooks/use-btc-price";
 import { useAhr999 } from "@/hooks/use-ahr999";
+import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import type { DcaPlanInput, OtherAssetsInput } from "@/lib/types";
 
 export default function Home() {
-  const [language, setLanguage] = useState<Language>("zhCN");
-  const [btcHoldings, setBtcHoldings] = useState(1.2);
-  const [averageCostBasis, setAverageCostBasis] = useState(42_000);
-  const [monthlyExpenses, setMonthlyExpenses] = useState(4_500);
-  const [withdrawalRate, setWithdrawalRate] = useState(0.04);
+  const [language, setLanguage] = usePersistentState<Language>(
+    "btc-fire-os:language",
+    "zhCN",
+  );
+  const [btcHoldings, setBtcHoldings] = usePersistentState(
+    "btc-fire-os:btc-holdings",
+    1.2,
+  );
+  const [averageCostBasis, setAverageCostBasis] = usePersistentState(
+    "btc-fire-os:average-cost-basis",
+    42_000,
+  );
+  const [monthlyExpenses, setMonthlyExpenses] = usePersistentState(
+    "btc-fire-os:monthly-expenses",
+    4_500,
+  );
+  const [withdrawalRate, setWithdrawalRate] = usePersistentState(
+    "btc-fire-os:withdrawal-rate",
+    0.04,
+  );
+  const [dcaPlan, setDcaPlan] = usePersistentState<DcaPlanInput>(
+    "btc-fire-os:dca-plan",
+    {
+    lowDailyAmount: 100,
+    normalDailyAmount: 30,
+    highDailyAmount: 0,
+    },
+  );
+  const [otherAssets, setOtherAssets] = usePersistentState<OtherAssetsInput>(
+    "btc-fire-os:other-assets",
+    {
+    currentAmount: 0,
+    annualReturnRate: 0.04,
+    },
+  );
   const btcPrice = useBtcPrice();
   const ahr999 = useAhr999(btcPrice.price);
+  const ahr999Frequency = useAhr999Frequency();
   const t = translations[language];
 
   const model = useMemo(() => {
@@ -65,6 +106,19 @@ export default function Home() {
       btcHoldings,
       fireResult.requiredPortfolioValue,
     );
+    const futureFireProjection = buildPriceProjection({
+      btcHoldings,
+      currentPrice: btcPrice.price,
+      requiredPortfolioValue: fireResult.requiredPortfolioValue,
+    });
+    const dcaFireProjection = projectDcaFire({
+      btcHoldings,
+      currentBtcPrice: btcPrice.price,
+      requiredPortfolioValue: fireResult.requiredPortfolioValue,
+      plan: dcaPlan,
+      frequency: ahr999Frequency,
+      otherAssets,
+    });
 
     return {
       dashboardMetrics: {
@@ -76,21 +130,27 @@ export default function Home() {
       },
       fireResult,
       scenarioResults,
+      futureFireProjection,
+      firstFireYear: findFirstFireYear(futureFireProjection),
+      dcaFireProjection,
     };
   }, [
     averageCostBasis,
+    ahr999Frequency,
     btcHoldings,
     btcPrice.price,
+    dcaPlan,
     monthlyExpenses,
+    otherAssets,
     withdrawalRate,
   ]);
 
   return (
-    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
-        <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-bitcoin text-black">
+    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-[1fr_25rem] lg:items-end">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-bitcoin text-black">
               <Bitcoin className="h-5 w-5" aria-hidden="true" />
             </div>
             <h1 className="text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
@@ -101,7 +161,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:min-w-80">
+          <div className="flex flex-col gap-3">
             <LanguageSelector
               activeLanguage={language}
               label={t.app.language}
@@ -127,7 +187,7 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+        <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-5">
             <PortfolioInput
               averageCostBasis={averageCostBasis}
@@ -146,8 +206,32 @@ export default function Home() {
 
           <div className="space-y-5">
             <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
-            <Ahr999Card ahr999={ahr999} language={language} t={t.ahr999} />
+            <DcaFirePlannerCard
+              frequency={ahr999Frequency}
+              language={language}
+              otherAssets={otherAssets}
+              plan={dcaPlan}
+              projection={model.dcaFireProjection}
+              t={t.dcaPlanner}
+              onOtherAssetsChange={setOtherAssets}
+              onPlanChange={setDcaPlan}
+            />
+          </div>
+        </section>
+
+        <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="space-y-5">
+            <FutureFireCard
+              currentRequiredBtc={model.fireResult.requiredBtc}
+              firstFireYear={model.firstFireYear}
+              points={model.futureFireProjection}
+              t={t.future}
+            />
             <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
+          </div>
+
+          <div className="space-y-5">
+            <Ahr999Card ahr999={ahr999} language={language} t={t.ahr999} />
             <AccumulationChart data={MOCK_ACCUMULATION_HISTORY} t={t.chart} />
           </div>
         </section>
