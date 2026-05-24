@@ -40,7 +40,7 @@ import { useAhr999 } from "@/hooks/use-ahr999";
 import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
-import type { Currency, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import type { Ahr999Recommendation, Currency, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 export default function Home() {
@@ -173,32 +173,42 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <LanguageSelector
-              activeLanguage={language}
-              label={t.app.language}
-              onLanguageChange={setLanguage}
-            />
-            <CurrencySelector
-              activeCurrency={currency}
-              label={t.app.currency}
-              onCurrencyChange={setCurrency}
-            />
-            <HeaderMetric
-              label={t.app.liveBtcPrice}
-              subvalue={formatPriceStatus(
-                btcPrice.status,
-                btcPrice.lastUpdated,
-                t.app,
-                language,
-              )}
-              tone={btcPrice.status === "live" ? "positive" : "default"}
-              value={formatCurrency(btcPrice.price, 2)}
-            />
-            <HeaderMetric
-              label={t.app.currentStack}
-              value={formatBtc(btcHoldings)}
-            />
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <LanguageSelector
+                  activeLanguage={language}
+                  label={t.app.language}
+                  onLanguageChange={setLanguage}
+                />
+              </div>
+              <div className="flex-1">
+                <CurrencySelector
+                  activeCurrency={currency}
+                  label={t.app.currency}
+                  onCurrencyChange={setCurrency}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <HeaderMetric
+                label={t.app.liveBtcPrice}
+                subvalue={formatPriceStatus(btcPrice.status, btcPrice.lastUpdated, t.app, language)}
+                tone={btcPrice.status === "live" ? "positive" : "default"}
+                value={formatCurrency(btcPrice.price, 2)}
+              />
+              <HeaderMetric
+                label={t.app.currentStack}
+                value={formatBtc(btcHoldings)}
+                subvalue={`≈ ${formatCurrency(convertCurrency(btcHoldings * btcPrice.price, currency, cnyRate), 2, currency)}`}
+              />
+              <HeaderMetric
+                label={t.ahr999.subtitle}
+                value={ahr999.status === "ready" ? ahr999.value.toFixed(4) : t.ahr999.loading}
+                tone={ahr999.recommendation === "increase" ? "positive" : "default"}
+                subvalue={ahr999.status === "ready" ? getAhr999Suggestion(ahr999.recommendation, t.ahr999) : undefined}
+              />
+            </div>
           </div>
         </header>
 
@@ -344,6 +354,15 @@ function CurrencySelector({
   );
 }
 
+function getAhr999Suggestion(
+  recommendation: Ahr999Recommendation,
+  t: Translation["ahr999"],
+) {
+  if (recommendation === "increase") return t.increase;
+  if (recommendation === "stop") return t.stop;
+  return t.normal;
+}
+
 type HeaderMetricProps = {
   label: string;
   value: string;
@@ -394,7 +413,7 @@ function formatPriceStatus(
     second: "2-digit",
   }).format(lastUpdated);
 
-  return `${statusLabel} · ${t.lastUpdated} ${updatedAt}`;
+  return `${statusLabel} ${updatedAt}`;
 }
 
 type NavSidebarProps = {
@@ -410,7 +429,7 @@ function NavSidebar({ activeTab, onTabChange, t }: NavSidebarProps) {
   ];
 
   return (
-    <nav className="flex shrink-0 flex-row gap-1 md:w-28 md:flex-col">
+    <nav className="flex shrink-0 flex-row gap-1 md:w-32 md:flex-col">
       <div className="flex w-full flex-row gap-1 rounded-lg border border-border bg-surface p-1.5 md:flex-col md:p-2">
         {tabs.map((tab) => (
           <button
@@ -424,7 +443,7 @@ function NavSidebar({ activeTab, onTabChange, t }: NavSidebarProps) {
             onClick={() => onTabChange(tab.id)}
           >
             <tab.icon className="h-4 w-4 shrink-0" />
-            <span>{tab.label}</span>
+            <span className="whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
       </div>

@@ -63,7 +63,7 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
           return;
         }
 
-        const average200DayPrice = calculateGeometricMean(closes);
+        const average200DayPrice = calculateArithmeticMean(closes);
 
         setState({
           average200DayPrice,
@@ -103,11 +103,10 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
   }, [btcPrice, state.average200DayPrice, state.lastUpdated, state.status]);
 }
 
-function calculateGeometricMean(values: number[]) {
+function calculateArithmeticMean(values: number[]) {
   if (values.length === 0) {
     return 0;
   }
 
-  const logSum = values.reduce((sum, value) => sum + Math.log10(value), 0);
-  return 10 ** (logSum / values.length);
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
