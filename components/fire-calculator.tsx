@@ -6,14 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  currencySymbol,
   formatBtc,
   formatCurrency,
   formatPercentage,
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
-import type { FireResult } from "@/lib/types";
+import type { Currency, FireResult } from "@/lib/types";
 
 type FireCalculatorProps = {
+  currency?: Currency;
   fireResult: FireResult;
   t: Translation["fire"];
   onMonthlyExpensesChange: (value: number) => void;
@@ -21,6 +23,7 @@ type FireCalculatorProps = {
 };
 
 export function FireCalculator({
+  currency = "USD",
   fireResult,
   t,
   onMonthlyExpensesChange,
@@ -40,17 +43,23 @@ export function FireCalculator({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="monthly-expenses">{t.monthlyExpenses}</Label>
-            <Input
-              id="monthly-expenses"
-              inputMode="decimal"
-              min="0"
-              step="100"
-              type="number"
-              value={fireResult.monthlyExpenses}
-              onChange={(event) =>
-                onMonthlyExpensesChange(Number(event.target.value))
-              }
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted">
+                {currencySymbol(currency)}
+              </span>
+              <Input
+                id="monthly-expenses"
+                className="pl-7"
+                inputMode="decimal"
+                min="0"
+                step="100"
+                type="number"
+                value={fireResult.monthlyExpenses}
+                onChange={(event) =>
+                  onMonthlyExpensesChange(Number(event.target.value))
+                }
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="withdrawal-rate">{t.withdrawalRate}</Label>

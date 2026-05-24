@@ -50,7 +50,7 @@ export function Ahr999Card({ ahr999, language, t }: Ahr999CardProps) {
               {t.value}
             </div>
             <div className="mt-2 text-4xl font-semibold text-foreground">
-              {isReady ? ahr999.value.toFixed(2) : "--"}
+              {isReady ? ahr999.value.toFixed(4) : "--"}
             </div>
           </div>
 

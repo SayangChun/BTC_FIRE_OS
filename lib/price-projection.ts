@@ -1,4 +1,6 @@
 import type {
+  Ahr999Frequency,
+  DcaPlanInput,
   PriceProjectionPoint,
   PriceProjectionScenario,
 } from "@/lib/types";
@@ -33,7 +35,7 @@ export function projectBtcPrice(
 ): number {
   const currentModelPrice = calculatePowerLawPrice(today);
   const futureDate = new Date(today);
-  futureDate.setFullYear(today.getFullYear() + yearsFromNow);
+  futureDate.setMonth(today.getMonth() + Math.round(yearsFromNow * 12));
 
   const futureModelPrice = calculatePowerLawPrice(futureDate);
   const valuationRatio =
@@ -47,23 +49,53 @@ export function projectBtcPrice(
   return baseProjection * scenarioMultipliers[scenario];
 }
 
+function projectAccumulatedBtc(
+  currentBtc: number,
+  currentBtcPrice: number,
+  monthlyDca: number,
+  targetYear: number,
+  scenario: PriceProjectionScenario,
+): number {
+  let btc = currentBtc;
+  for (let month = 1; month <= targetYear * 12; month++) {
+    const price = projectBtcPrice(currentBtcPrice, month / 12, scenario);
+    if (price > 0) btc += monthlyDca / price;
+  }
+  return btc;
+}
+
 export function buildPriceProjection({
   btcHoldings,
   currentPrice,
   requiredPortfolioValue,
-  years = [1, 5, 10],
+  years = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  dcaPlan,
+  ahr999Frequency,
 }: {
   btcHoldings: number;
   currentPrice: number;
   requiredPortfolioValue: number;
   years?: number[];
+  dcaPlan?: DcaPlanInput;
+  ahr999Frequency?: Ahr999Frequency;
 }): PriceProjectionPoint[] {
   const scenarios: PriceProjectionScenario[] = ["bear", "base", "bull"];
+  const expectedMonthlyDca =
+    dcaPlan && ahr999Frequency
+      ? (dcaPlan.lowDailyAmount * ahr999Frequency.low +
+          dcaPlan.normalDailyAmount * ahr999Frequency.normal +
+          dcaPlan.highDailyAmount * ahr999Frequency.high) *
+        (365 / 12)
+      : 0;
 
   return years.flatMap((year) =>
     scenarios.map((scenario) => {
       const projectedPrice = projectBtcPrice(currentPrice, year, scenario);
-      const projectedPortfolioValue = btcHoldings * projectedPrice;
+      const projectedBtc =
+        expectedMonthlyDca > 0
+          ? projectAccumulatedBtc(btcHoldings, currentPrice, expectedMonthlyDca, year, scenario)
+          : btcHoldings;
+      const projectedPortfolioValue = projectedBtc * projectedPrice;
       const requiredBtcForFire =
         projectedPrice > 0 ? requiredPortfolioValue / projectedPrice : 0;
       const fireProgress =
@@ -75,6 +107,7 @@ export function buildPriceProjection({
         year,
         scenario,
         projectedPrice,
+        projectedBtc,
         projectedPortfolioValue,
         requiredBtcForFire,
         fireProgress,

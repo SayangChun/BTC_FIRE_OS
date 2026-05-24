@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  convertCurrency,
+  currencySymbol,
   formatBtc,
   formatCurrency,
   formatPercentage,
@@ -13,12 +15,15 @@ import {
 import type { Translation } from "@/lib/i18n";
 import type {
   Ahr999Frequency,
+  Currency,
   DcaFireProjection,
   DcaPlanInput,
   OtherAssetsInput,
 } from "@/lib/types";
 
 type DcaFirePlannerCardProps = {
+  currency?: Currency;
+  cnyRate?: number;
   plan: DcaPlanInput;
   otherAssets: OtherAssetsInput;
   frequency: Ahr999Frequency & { status: "loading" | "ready" | "error" };
@@ -30,6 +35,8 @@ type DcaFirePlannerCardProps = {
 };
 
 export function DcaFirePlannerCard({
+  currency = "USD",
+  cnyRate = 7.2,
   plan,
   otherAssets,
   frequency,
@@ -39,6 +46,7 @@ export function DcaFirePlannerCard({
   onPlanChange,
   onOtherAssetsChange,
 }: DcaFirePlannerCardProps) {
+  const toDisplay = (usdValue: number) => convertCurrency(usdValue, currency, cnyRate);
   return (
     <Card>
       <CardHeader>
@@ -75,25 +83,35 @@ export function DcaFirePlannerCard({
 
         <div className="grid gap-4 md:grid-cols-2">
           <DcaInput
+            currency={currency}
             id="other-assets"
             label={t.otherAssets}
-            value={otherAssets.currentAmount}
-            onChange={(value) =>
-              onOtherAssetsChange({ ...otherAssets, currentAmount: value })
-            }
-          />
-          <DcaInput
-            id="other-assets-return"
-            label={t.otherAssetsReturn}
-            value={Number((otherAssets.annualReturnRate * 100).toFixed(2))}
-            step="0.1"
+            value={toDisplay(otherAssets.currentAmount)}
             onChange={(value) =>
               onOtherAssetsChange({
                 ...otherAssets,
-                annualReturnRate: value / 100,
+                currentAmount: currency === "CNY" ? value / cnyRate : value,
               })
             }
           />
+          <div className="space-y-2">
+            <Label htmlFor="other-assets-return">{t.otherAssetsReturn}</Label>
+            <Input
+              id="other-assets-return"
+              inputMode="decimal"
+              min="0"
+              max="100"
+              step="0.1"
+              type="number"
+              value={Number((otherAssets.annualReturnRate * 100).toFixed(2))}
+              onChange={(event) =>
+                onOtherAssetsChange({
+                  ...otherAssets,
+                  annualReturnRate: Number(event.target.value) / 100,
+                })
+              }
+            />
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -146,7 +164,7 @@ export function DcaFirePlannerCard({
           </div>
           <div className="mt-2 text-2xl font-semibold text-foreground">
             {projection.projectedFireYears
-              ? `${projection.projectedFireYears.toFixed(1)} ${t.years}`
+              ? formatFireTime(projection.projectedFireYears, t.years, t.months)
               : t.notReached}
           </div>
           <p className="mt-2 text-sm leading-6 text-muted">
@@ -199,6 +217,7 @@ export function DcaFirePlannerCard({
 }
 
 type DcaInputProps = {
+  currency?: Currency;
   id: string;
   label: string;
   value: number;
@@ -206,19 +225,25 @@ type DcaInputProps = {
   onChange: (value: number) => void;
 };
 
-function DcaInput({ id, label, value, step = "1", onChange }: DcaInputProps) {
+function DcaInput({ currency = "USD", id, label, value, step = "1", onChange }: DcaInputProps) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        inputMode="decimal"
-        min="0"
-        step={step}
-        type="number"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
+      <div className="relative">
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted">
+          {currencySymbol(currency)}
+        </span>
+        <Input
+          id={id}
+          className="pl-7"
+          inputMode="decimal"
+          min="0"
+          step={step}
+          type="number"
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+      </div>
     </div>
   );
 }
@@ -241,6 +266,13 @@ function PlanMetric({ label, value }: { label: string; value: string }) {
       </div>
     </div>
   );
+}
+
+function formatFireTime(years: number, yearLabel: string, monthLabel: string) {
+  const y = Math.floor(years);
+  const m = Math.round((years - y) * 12);
+  if (m === 12) { return `${y + 1}${yearLabel}`; }
+  return m > 0 ? `${y}${yearLabel}${m}${monthLabel}` : `${y}${yearLabel}`;
 }
 
 function formatDate(date: Date, language: DcaFirePlannerCardProps["language"]) {

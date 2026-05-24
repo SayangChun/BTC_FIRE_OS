@@ -42,11 +42,13 @@ export function useAhr999Frequency(): Ahr999Frequency & {
 
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
 
     async function fetchFrequency() {
       try {
         const response = await fetch(BINANCE_DAILY_KLINES, {
           cache: "no-store",
+          signal: abortController.signal,
         });
         const klines = (await response.json()) as BinanceKline[];
         const closes = klines
@@ -63,7 +65,7 @@ export function useAhr999Frequency(): Ahr999Frequency & {
           const window = closes
             .slice(index - AHR999_COST_WINDOW + 1, index + 1)
             .map((point) => point.close);
-          const average200DayPrice = calculateAverage(window);
+          const average200DayPrice = calculateGeometricMean(window);
           const value = calculateAhr999(
             closes[index].close,
             average200DayPrice,
@@ -93,7 +95,8 @@ export function useAhr999Frequency(): Ahr999Frequency & {
           lastUpdated: new Date(),
           status: "ready",
         });
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
           setState((current) => ({ ...current, status: "error" }));
         }
@@ -105,6 +108,7 @@ export function useAhr999Frequency(): Ahr999Frequency & {
 
     return () => {
       isMounted = false;
+      abortController.abort();
       window.clearInterval(interval);
     };
   }, []);
@@ -112,10 +116,11 @@ export function useAhr999Frequency(): Ahr999Frequency & {
   return state;
 }
 
-function calculateAverage(values: number[]) {
+function calculateGeometricMean(values: number[]) {
   if (values.length === 0) {
     return 0;
   }
 
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const logSum = values.reduce((sum, value) => sum + Math.log10(value), 0);
+  return 10 ** (logSum / values.length);
 }

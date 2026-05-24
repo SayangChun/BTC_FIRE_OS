@@ -35,11 +35,13 @@ export function useBtcPrice(): BtcPriceState {
   useEffect(() => {
     let isMounted = true;
     let socket: WebSocket | null = null;
+    const abortController = new AbortController();
 
     async function fetchRestPrice() {
       try {
         const response = await fetch(BINANCE_BTC_USDT_REST, {
           cache: "no-store",
+          signal: abortController.signal,
         });
         const data = (await response.json()) as BinanceTickerResponse;
         const nextPrice = Number(data.price);
@@ -53,7 +55,8 @@ export function useBtcPrice(): BtcPriceState {
           status: "polling",
           lastUpdated: new Date(),
         });
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
           setState((current) => ({ ...current, status: "offline" }));
         }
@@ -77,18 +80,22 @@ export function useBtcPrice(): BtcPriceState {
       };
 
       socket.onmessage = (event) => {
-        const data = JSON.parse(event.data as string) as BinanceTradeMessage;
-        const nextPrice = Number(data.p);
+        try {
+          const data = JSON.parse(event.data as string) as BinanceTradeMessage;
+          const nextPrice = Number(data.p);
 
-        if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-          return;
+          if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+            return;
+          }
+
+          setState({
+            price: nextPrice,
+            status: "live",
+            lastUpdated: new Date(),
+          });
+        } catch {
+          // ignore malformed messages
         }
-
-        setState({
-          price: nextPrice,
-          status: "live",
-          lastUpdated: new Date(),
-        });
       };
 
       socket.onerror = () => {
@@ -120,6 +127,7 @@ export function useBtcPrice(): BtcPriceState {
 
     return () => {
       isMounted = false;
+      abortController.abort();
       window.clearInterval(pollingInterval);
 
       if (reconnectTimerRef.current) {

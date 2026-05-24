@@ -35,10 +35,9 @@ export type ScenarioResult = BtcScenario & {
   isFireReady: boolean;
 };
 
-export type AccumulationPoint = {
-  month: string;
-  btc: number;
-  value: number;
+export type PricePoint = {
+  date: string;
+  price: number;
 };
 
 export type Ahr999Recommendation = "increase" | "normal" | "stop";
@@ -57,11 +56,14 @@ export type PriceProjectionPoint = {
   year: number;
   scenario: PriceProjectionScenario;
   projectedPrice: number;
+  projectedBtc: number;
   projectedPortfolioValue: number;
   requiredBtcForFire: number;
   fireProgress: number;
   isFireReady: boolean;
 };
+
+export type Currency = "USD" | "CNY";
 
 export type Ahr999Zone = "low" | "normal" | "high";
 

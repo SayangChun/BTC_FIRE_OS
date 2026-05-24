@@ -1,21 +1,43 @@
-import type { AccumulationPoint, BtcScenario } from "@/lib/types";
+import type { BtcScenario, PricePoint } from "@/lib/types";
+import { calculatePowerLawPrice } from "@/lib/price-projection";
 
 export const MOCK_BTC_PRICE = 100_000;
 
-export const MOCK_ACCUMULATION_HISTORY: AccumulationPoint[] = [
-  { month: "Jan", btc: 0.42, value: 31_500 },
-  { month: "Feb", btc: 0.48, value: 37_440 },
-  { month: "Mar", btc: 0.55, value: 46_750 },
-  { month: "Apr", btc: 0.61, value: 54_900 },
-  { month: "May", btc: 0.68, value: 68_000 },
-  { month: "Jun", btc: 0.74, value: 74_000 },
-  { month: "Jul", btc: 0.82, value: 86_100 },
-  { month: "Aug", btc: 0.9, value: 90_000 },
-  { month: "Sep", btc: 0.97, value: 101_850 },
-  { month: "Oct", btc: 1.04, value: 109_200 },
-  { month: "Nov", btc: 1.12, value: 117_600 },
-  { month: "Dec", btc: 1.2, value: 120_000 },
-];
+function generateBtcPriceHistory(): PricePoint[] {
+  const points: PricePoint[] = [];
+  const genesis = new Date("2009-01-03T00:00:00Z");
+  const now = new Date();
+
+  for (let y = 2011; y <= now.getFullYear(); y++) {
+    const maxM = y === now.getFullYear() ? now.getMonth() + 1 : 12;
+    for (let m = 1; m <= maxM; m++) {
+      const date = new Date(y, m - 1, 1);
+      const daysSinceGenesis = Math.floor(
+        (date.getTime() - genesis.getTime()) / 86400000,
+      );
+      if (daysSinceGenesis < 1) continue;
+
+      const basePrice = calculatePowerLawPrice(date);
+
+      const yearsSince2011 =
+        (date.getTime() - new Date("2011-01-01").getTime()) /
+        (365.25 * 86400000);
+      const cycle = Math.sin((2 * Math.PI * yearsSince2011) / 4);
+      const noise = 1 + (Math.sin(yearsSince2011 * 13.7) * 0.08 + Math.cos(yearsSince2011 * 7.3) * 0.06);
+
+      const price = Math.max(0.01, basePrice * (1 + 0.65 * cycle) * noise);
+
+      points.push({
+        date: `${y}-${String(m).padStart(2, "0")}-01`,
+        price: Math.round(price * 100) / 100,
+      });
+    }
+  }
+
+  return points;
+}
+
+export const MOCK_BTC_PRICE_HISTORY: PricePoint[] = generateBtcPriceHistory();
 
 export const BTC_PRICE_SCENARIOS: BtcScenario[] = [
   {

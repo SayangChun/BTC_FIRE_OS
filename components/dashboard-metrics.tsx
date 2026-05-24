@@ -31,7 +31,7 @@ export function DashboardMetrics({ metrics, t }: DashboardMetricsProps) {
           <Metric
             icon={<Bitcoin className="h-4 w-4" aria-hidden="true" />}
             label={t.btcPrice}
-            value={formatCurrency(metrics.currentBtcPrice)}
+            value={formatCurrency(metrics.currentBtcPrice, 2)}
           />
           <Metric
             icon={<CircleDollarSign className="h-4 w-4" aria-hidden="true" />}

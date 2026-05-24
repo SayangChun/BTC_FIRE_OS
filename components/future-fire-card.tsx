@@ -5,9 +5,11 @@ import {
   formatBtc,
   formatCurrency,
   formatPercentage,
+  convertCurrency,
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type {
+  Currency,
   PriceProjectionPoint,
   PriceProjectionScenario,
 } from "@/lib/types";
@@ -16,6 +18,8 @@ type FutureFireCardProps = {
   points: PriceProjectionPoint[];
   currentRequiredBtc: number;
   firstFireYear: number | null;
+  currency: Currency;
+  cnyRate: number;
   t: Translation["future"];
 };
 
@@ -23,6 +27,8 @@ export function FutureFireCard({
   points,
   currentRequiredBtc,
   firstFireYear,
+  currency,
+  cnyRate,
   t,
 }: FutureFireCardProps) {
   const tenYearBase = points.find(
@@ -56,18 +62,35 @@ export function FutureFireCard({
         </div>
 
         <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-1">
-          {[1, 5, 10].map((year) => (
+          {[1, 5, 10].map((year) => {
+            const basePoint = points.find(
+              (p) => p.year === year && p.scenario === "base",
+            );
+            return (
             <div
               key={year}
               className="rounded-md border border-border bg-background p-4"
             >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="font-semibold">
-                  {year} {t.yearsLater}
-                </h3>
-                <span className="text-xs uppercase tracking-[0.08em] text-muted">
-                  {t.modelBased}
-                </span>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">
+                    {year} {t.yearsLater}
+                  </h3>
+                </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-xs uppercase tracking-[0.08em] text-muted">
+                    {t.modelBased}
+                  </span>
+                  {basePoint ? (
+                    <span className="text-xs text-muted">
+                      {formatCurrency(
+                        convertCurrency(basePoint.projectedPortfolioValue, currency, cnyRate),
+                        0,
+                        currency,
+                      )}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                 {points
@@ -77,7 +100,8 @@ export function FutureFireCard({
                   ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -125,6 +149,7 @@ function ProjectionScenario({
       </div>
       <dl className="mt-3 space-y-2 text-sm">
         <Row label={t.projectedPrice} value={formatCurrency(point.projectedPrice)} />
+        <Row label={t.projectedBtc} value={formatBtc(point.projectedBtc)} />
         <Row label={t.requiredBtc} value={formatBtc(point.requiredBtcForFire)} />
         <Row label={t.fireProgress} value={formatPercentage(point.fireProgress)} />
       </dl>

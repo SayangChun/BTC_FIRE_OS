@@ -1,24 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function usePersistentState<T>(key: string, initialValue: T) {
   const [value, setValue] = useState<T>(initialValue);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const initialValueRef = useRef(initialValue);
 
   useEffect(() => {
     try {
       const storedValue = window.localStorage.getItem(key);
 
-      if (storedValue) {
+      if (storedValue !== null) {
         setValue(JSON.parse(storedValue) as T);
       }
     } catch {
-      setValue(initialValue);
+      setValue(initialValueRef.current);
     } finally {
       setHasHydrated(true);
     }
-  }, [initialValue, key]);
+  }, [key]);
 
   useEffect(() => {
     if (!hasHydrated) {

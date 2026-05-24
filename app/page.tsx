@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bitcoin } from "lucide-react";
+import { Bitcoin, User, Globe } from "lucide-react";
 
-import { AccumulationChart } from "@/components/accumulation-chart";
+import { BtcPriceChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
 import { DashboardMetrics } from "@/components/dashboard-metrics";
 import { DcaFirePlannerCard } from "@/components/dca-fire-planner-card";
@@ -18,6 +18,7 @@ import {
   calculateProfitLoss,
   calculateProfitLossPercentage,
   calculateScenarioResults,
+  convertCurrency,
   formatBtc,
   formatCurrency,
 } from "@/lib/calculations";
@@ -26,10 +27,7 @@ import {
   buildPriceProjection,
   findFirstFireYear,
 } from "@/lib/price-projection";
-import {
-  BTC_PRICE_SCENARIOS,
-  MOCK_ACCUMULATION_HISTORY,
-} from "@/lib/mock-data";
+import { BTC_PRICE_SCENARIOS } from "@/lib/mock-data";
 import {
   languageOptions,
   translations,
@@ -40,8 +38,10 @@ import { cn } from "@/lib/utils";
 import { useBtcPrice, type BtcPriceStatus } from "@/hooks/use-btc-price";
 import { useAhr999 } from "@/hooks/use-ahr999";
 import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
+import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
-import type { DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import type { Currency, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 export default function Home() {
   const [language, setLanguage] = usePersistentState<Language>(
@@ -79,9 +79,19 @@ export default function Home() {
     annualReturnRate: 0.04,
     },
   );
+  const [activeTab, setActiveTab] = usePersistentState<string>(
+    "btc-fire-os:active-tab",
+    "my",
+  );
+  const [currency, setCurrency] = usePersistentState<Currency>(
+    "btc-fire-os:currency",
+    "USD",
+  );
+  const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
   const ahr999 = useAhr999(btcPrice.price);
   const ahr999Frequency = useAhr999Frequency();
+  const btcPriceHistory = useBtcPriceHistory();
   const t = translations[language];
 
   const model = useMemo(() => {
@@ -110,6 +120,8 @@ export default function Home() {
       btcHoldings,
       currentPrice: btcPrice.price,
       requiredPortfolioValue: fireResult.requiredPortfolioValue,
+      dcaPlan,
+      ahr999Frequency,
     });
     const dcaFireProjection = projectDcaFire({
       btcHoldings,
@@ -161,80 +173,98 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <LanguageSelector
               activeLanguage={language}
               label={t.app.language}
               onLanguageChange={setLanguage}
             />
-            <div className="grid grid-cols-2 gap-3">
-              <HeaderMetric
-                label={t.app.liveBtcPrice}
-                subvalue={formatPriceStatus(
-                  btcPrice.status,
-                  btcPrice.lastUpdated,
-                  t.app,
-                  language,
-                )}
-                tone={btcPrice.status === "live" ? "positive" : "default"}
-                value={formatCurrency(btcPrice.price)}
-              />
-              <HeaderMetric
-                label={t.app.currentStack}
-                value={formatBtc(btcHoldings)}
-              />
-            </div>
+            <CurrencySelector
+              activeCurrency={currency}
+              label={t.app.currency}
+              onCurrencyChange={setCurrency}
+            />
+            <HeaderMetric
+              label={t.app.liveBtcPrice}
+              subvalue={formatPriceStatus(
+                btcPrice.status,
+                btcPrice.lastUpdated,
+                t.app,
+                language,
+              )}
+              tone={btcPrice.status === "live" ? "positive" : "default"}
+              value={formatCurrency(btcPrice.price, 2)}
+            />
+            <HeaderMetric
+              label={t.app.currentStack}
+              value={formatBtc(btcHoldings)}
+            />
           </div>
         </header>
 
-        <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-5">
-            <PortfolioInput
-              averageCostBasis={averageCostBasis}
-              btcHoldings={btcHoldings}
-              t={t.portfolio}
-              onAverageCostBasisChange={setAverageCostBasis}
-              onBtcHoldingsChange={setBtcHoldings}
-            />
-            <FireCalculator
-              fireResult={model.fireResult}
-              t={t.fire}
-              onMonthlyExpensesChange={setMonthlyExpenses}
-              onWithdrawalRateChange={setWithdrawalRate}
-            />
-          </div>
+        <div className="flex flex-col gap-5 md:flex-row">
+          <NavSidebar activeTab={activeTab} onTabChange={setActiveTab} t={t.nav} />
 
-          <div className="space-y-5">
-            <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
-            <DcaFirePlannerCard
-              frequency={ahr999Frequency}
-              language={language}
-              otherAssets={otherAssets}
-              plan={dcaPlan}
-              projection={model.dcaFireProjection}
-              t={t.dcaPlanner}
-              onOtherAssetsChange={setOtherAssets}
-              onPlanChange={setDcaPlan}
-            />
-          </div>
-        </section>
+          {activeTab === "my" ? (
+            <section className="flex-1 space-y-5">
+              <div className="grid gap-5 xl:grid-cols-2">
+                <PortfolioInput
+                  averageCostBasis={averageCostBasis}
+                  btcHoldings={btcHoldings}
+                  t={t.portfolio}
+                  onAverageCostBasisChange={setAverageCostBasis}
+                  onBtcHoldingsChange={setBtcHoldings}
+                />
+                <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
+              </div>
+              <div className="grid gap-5 xl:grid-cols-2">
+                <FireCalculator
+                  currency={currency}
+                  fireResult={{
+                    ...model.fireResult,
+                    monthlyExpenses: convertCurrency(model.fireResult.monthlyExpenses, currency, cnyRate),
+                  }}
+                  t={t.fire}
+                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(currency === "CNY" ? value / cnyRate : value)}
+                  onWithdrawalRateChange={setWithdrawalRate}
+                />
+                <DcaFirePlannerCard
+                  currency={currency}
+                  cnyRate={cnyRate}
+                  frequency={ahr999Frequency}
+                  language={language}
+                  otherAssets={otherAssets}
+                  plan={dcaPlan}
+                  projection={model.dcaFireProjection}
+                  t={t.dcaPlanner}
+                  onOtherAssetsChange={setOtherAssets}
+                  onPlanChange={setDcaPlan}
+                />
+              </div>
+              <FutureFireCard
+                currency={currency}
+                cnyRate={cnyRate}
+                currentRequiredBtc={model.fireResult.requiredBtc}
+                firstFireYear={model.firstFireYear}
+                points={model.futureFireProjection}
+                t={t.future}
+              />
+            </section>
+          ) : (
+            <section className="flex-1 space-y-5">
+              <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+                <div className="space-y-5">
+                  <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
+                </div>
 
-        <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-5">
-            <FutureFireCard
-              currentRequiredBtc={model.fireResult.requiredBtc}
-              firstFireYear={model.firstFireYear}
-              points={model.futureFireProjection}
-              t={t.future}
-            />
-            <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
-          </div>
-
-          <div className="space-y-5">
-            <Ahr999Card ahr999={ahr999} language={language} t={t.ahr999} />
-            <AccumulationChart data={MOCK_ACCUMULATION_HISTORY} t={t.chart} />
-          </div>
-        </section>
+                <div className="space-y-5">
+                  <Ahr999Card ahr999={ahr999} language={language} t={t.ahr999} />
+                  <BtcPriceChart data={btcPriceHistory.data} loading={btcPriceHistory.loading} error={btcPriceHistory.error} language={language} t={t.chart} />
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
       </div>
     </main>
   );
@@ -252,7 +282,7 @@ function LanguageSelector({
   onLanguageChange,
 }: LanguageSelectorProps) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-1.5">
       <span className="text-xs uppercase tracking-[0.08em] text-muted">
         {label}
       </span>
@@ -269,6 +299,44 @@ function LanguageSelector({
             onClick={() => onLanguageChange(option)}
           >
             {translations[option].languageShort}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type CurrencySelectorProps = {
+  activeCurrency: Currency;
+  label: string;
+  onCurrencyChange: (currency: Currency) => void;
+};
+
+function CurrencySelector({
+  activeCurrency,
+  label,
+  onCurrencyChange,
+}: CurrencySelectorProps) {
+  const currencies: Currency[] = ["USD", "CNY"];
+
+  return (
+    <div className="flex items-center justify-between gap-1.5">
+      <span className="text-xs uppercase tracking-[0.08em] text-muted">
+        {label}
+      </span>
+      <div className="flex rounded-md border border-border bg-surface p-1">
+        {currencies.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={cn(
+              "h-8 rounded px-3 text-sm font-semibold text-muted transition-colors hover:text-foreground",
+              activeCurrency === option && "bg-bitcoin text-black hover:text-black",
+            )}
+            aria-pressed={activeCurrency === option}
+            onClick={() => onCurrencyChange(option)}
+          >
+            {option}
           </button>
         ))}
       </div>
@@ -327,4 +395,39 @@ function formatPriceStatus(
   }).format(lastUpdated);
 
   return `${statusLabel} · ${t.lastUpdated} ${updatedAt}`;
+}
+
+type NavSidebarProps = {
+  activeTab: string;
+  onTabChange: (tab: "my" | "general") => void;
+  t: { my: string; general: string };
+};
+
+function NavSidebar({ activeTab, onTabChange, t }: NavSidebarProps) {
+  const tabs = [
+    { id: "my" as const, label: t.my, icon: User },
+    { id: "general" as const, label: t.general, icon: Globe },
+  ];
+
+  return (
+    <nav className="flex shrink-0 flex-row gap-1 md:w-28 md:flex-col">
+      <div className="flex w-full flex-row gap-1 rounded-lg border border-border bg-surface p-1.5 md:flex-col md:p-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:text-foreground md:flex-none md:justify-start",
+              activeTab === tab.id && "bg-bitcoin text-black hover:text-black",
+            )}
+            aria-pressed={activeTab === tab.id}
+            onClick={() => onTabChange(tab.id)}
+          >
+            <tab.icon className="h-4 w-4 shrink-0" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
 }

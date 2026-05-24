@@ -46,11 +46,13 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
 
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
 
     async function fetchAverage200DayPrice() {
       try {
         const response = await fetch(BINANCE_BTC_USDT_DAILY_KLINES, {
           cache: "no-store",
+          signal: abortController.signal,
         });
         const klines = (await response.json()) as BinanceKline[];
         const closes = klines
@@ -61,14 +63,15 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
           return;
         }
 
-        const average200DayPrice = calculateAverage(closes);
+        const average200DayPrice = calculateGeometricMean(closes);
 
         setState({
           average200DayPrice,
           status: "ready",
           lastUpdated: new Date(),
         });
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         if (isMounted) {
           setState((current) => ({ ...current, status: "error" }));
         }
@@ -80,6 +83,7 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
 
     return () => {
       isMounted = false;
+      abortController.abort();
       window.clearInterval(interval);
     };
   }, []);
@@ -99,10 +103,11 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
   }, [btcPrice, state.average200DayPrice, state.lastUpdated, state.status]);
 }
 
-function calculateAverage(values: number[]) {
+function calculateGeometricMean(values: number[]) {
   if (values.length === 0) {
     return 0;
   }
 
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const logSum = values.reduce((sum, value) => sum + Math.log10(value), 0);
+  return 10 ** (logSum / values.length);
 }

@@ -1,4 +1,4 @@
-import type { BtcScenario, FireResult, ScenarioResult } from "@/lib/types";
+import type { BtcScenario, Currency, FireResult, ScenarioResult } from "@/lib/types";
 
 export function calculatePortfolioValue(
   btcHoldings: number,
@@ -86,18 +86,26 @@ export function calculateScenarioResults(
   });
 }
 
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
+const CURRENCY_FORMATS: Record<Currency, { locale: string; currency: string }> = {
+  USD: { locale: "en-US", currency: "USD" },
+  CNY: { locale: "zh-CN", currency: "CNY" },
+};
+
+export function formatCurrency(value: number, decimals = 0, currency: Currency = "USD"): string {
+  const fmt = CURRENCY_FORMATS[currency];
+  return new Intl.NumberFormat(fmt.locale, {
     style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
+    currency: fmt.currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(safeNumber(value));
 }
 
-export function formatSignedCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatSignedCurrency(value: number, currency: Currency = "USD"): string {
+  const fmt = CURRENCY_FORMATS[currency];
+  return new Intl.NumberFormat(fmt.locale, {
     style: "currency",
-    currency: "USD",
+    currency: fmt.currency,
     maximumFractionDigits: 0,
     signDisplay: "exceptZero",
   }).format(signedNumber(value));
@@ -122,6 +130,15 @@ export function formatSignedPercentage(value: number): string {
     maximumFractionDigits: 1,
     signDisplay: "exceptZero",
   }).format(signedNumber(value));
+}
+
+export function currencySymbol(currency: Currency): string {
+  return currency === "CNY" ? "¥" : "$";
+}
+
+export function convertCurrency(usdValue: number, target: Currency, cnyRate: number): number {
+  if (target === "USD") return usdValue;
+  return usdValue * cnyRate;
 }
 
 function safeNumber(value: number): number {
