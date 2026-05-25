@@ -47,6 +47,7 @@ export default function Home() {
   const [language, setLanguage] = usePersistentState<Language>(
     "btc-fire-os:language",
     "zhCN",
+    (v): v is Language => languageOptions.includes(v as Language),
   );
   const [btcHoldings, setBtcHoldings] = usePersistentState(
     "btc-fire-os:btc-holdings",
@@ -82,10 +83,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = usePersistentState<string>(
     "btc-fire-os:active-tab",
     "my",
+    (v): v is string => v === "my" || v === "general",
   );
   const [currency, setCurrency] = usePersistentState<Currency>(
     "btc-fire-os:currency",
     "USD",
+    (v): v is Currency => v === "USD" || v === "CNY",
   );
   const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
@@ -158,6 +161,7 @@ export default function Home() {
   ]);
 
   return (
+    <>
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-[1fr_25rem] lg:items-end">
@@ -268,7 +272,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-5">
-                  <Ahr999Card ahr999={ahr999} language={language} t={t.ahr999} />
+                  <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
                   <BtcPriceChart data={btcPriceHistory.data} loading={btcPriceHistory.loading} error={btcPriceHistory.error} language={language} t={t.chart} />
                 </div>
               </div>
@@ -277,6 +281,18 @@ export default function Home() {
         </div>
       </div>
     </main>
+      <footer className="border-t border-border py-6 text-center text-sm text-muted">
+        <span>Author: </span>
+        <a
+          href="https://x.com/Z3n7th"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-bitcoin transition-colors hover:text-foreground"
+        >
+          @Z3n7th
+        </a>
+      </footer>
+    </>
   );
 }
 
