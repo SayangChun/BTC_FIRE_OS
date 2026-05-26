@@ -2,6 +2,7 @@ export const translations = {
   zhCN: {
     languageName: "简体中文",
     languageShort: "简",
+    quote: "知之非难，行之不易",
     app: {
       title: "BTC FIRE OS",
       description: "用一个简洁的财务自由目标，追踪你的比特币资产进度。",
@@ -144,6 +145,7 @@ export const translations = {
   zhTW: {
     languageName: "繁體中文",
     languageShort: "繁",
+    quote: "知之非難，行之不易",
     app: {
       title: "BTC FIRE OS",
       description: "用一個簡潔的財務自由目標，追蹤你的比特幣資產進度。",
@@ -286,6 +288,7 @@ export const translations = {
   en: {
     languageName: "English",
     languageShort: "EN",
+    quote: "To know is not difficult; to act is hard.",
     app: {
       title: "BTC FIRE OS",
       description:

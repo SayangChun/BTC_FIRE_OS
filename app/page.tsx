@@ -282,6 +282,8 @@ export default function Home() {
       </div>
     </main>
       <footer className="border-t border-border py-6 text-center text-sm text-muted">
+        <span className="italic">{t.quote}</span>
+        <span className="mx-2">·</span>
         <span>Author: </span>
         <a
           href="https://x.com/Z3n7th"
