@@ -5,23 +5,29 @@ import { Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { currencySymbol } from "@/lib/calculations";
+import { BTC_UNITS, BTC_UNIT_OPTIONS, btcToUnit, currencySymbol, unitToBtc } from "@/lib/calculations";
+import { cn } from "@/lib/utils";
 import type { Translation } from "@/lib/i18n";
+import type { BtcUnit } from "@/lib/types";
 
 type PortfolioInputProps = {
   btcHoldings: number;
+  btcUnit: BtcUnit;
   averageCostBasis: number;
   t: Translation["portfolio"];
   onBtcHoldingsChange: (value: number) => void;
   onAverageCostBasisChange: (value: number) => void;
+  onBtcUnitChange: (unit: BtcUnit) => void;
 };
 
 export function PortfolioInput({
   btcHoldings,
+  btcUnit,
   averageCostBasis,
   t,
   onBtcHoldingsChange,
   onAverageCostBasisChange,
+  onBtcUnitChange,
 }: PortfolioInputProps) {
   return (
     <Card>
@@ -33,16 +39,34 @@ export function PortfolioInput({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="btc-holdings">{t.btcHoldings}</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="btc-holdings">{t.btcHoldings}</Label>
+            <div className="flex rounded-md border border-border bg-surface p-0.5">
+              {BTC_UNIT_OPTIONS.map((unit) => (
+                <button
+                  key={unit}
+                  type="button"
+                  className={cn(
+                    "h-7 rounded px-2 text-xs font-medium text-muted transition-colors hover:text-foreground",
+                    btcUnit === unit && "bg-bitcoin text-black hover:text-black",
+                  )}
+                  aria-pressed={btcUnit === unit}
+                  onClick={() => onBtcUnitChange(unit)}
+                >
+                  {BTC_UNITS[unit].label}
+                </button>
+              ))}
+            </div>
+          </div>
           <Input
             id="btc-holdings"
             inputMode="decimal"
             min="0"
-            step="0.0001"
+            step={BTC_UNITS[btcUnit].step}
             type="number"
-            value={btcHoldings}
+            value={btcToUnit(btcHoldings, btcUnit)}
             onChange={(event) =>
-              onBtcHoldingsChange(Number(event.target.value))
+              onBtcHoldingsChange(unitToBtc(Number(event.target.value), btcUnit))
             }
           />
         </div>

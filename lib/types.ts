@@ -81,6 +81,8 @@ export type DcaPlanInput = {
   highDailyAmount: number;
 };
 
+export type BtcUnit = "BTC" | "mBTC" | "bits" | "sat";
+
 export type OtherAssetsInput = {
   currentAmount: number;
   annualReturnRate: number;

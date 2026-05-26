@@ -24,6 +24,7 @@ export const translations = {
       title: "投资组合输入",
       btcHoldings: "BTC 持仓",
       averageCostBasis: "平均成本",
+      btcUnit: "BTC 单位",
     },
     dashboard: {
       title: "仪表盘",
@@ -167,6 +168,7 @@ export const translations = {
       title: "投資組合輸入",
       btcHoldings: "BTC 持倉",
       averageCostBasis: "平均成本",
+      btcUnit: "BTC 單位",
     },
     dashboard: {
       title: "儀表板",
@@ -311,6 +313,7 @@ export const translations = {
       title: "Portfolio Input",
       btcHoldings: "BTC holdings",
       averageCostBasis: "Average cost basis",
+      btcUnit: "BTC Unit",
     },
     dashboard: {
       title: "Dashboard",

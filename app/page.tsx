@@ -40,7 +40,7 @@ import { useAhr999 } from "@/hooks/use-ahr999";
 import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
-import type { Ahr999Recommendation, Currency, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import type { Ahr999Recommendation, BtcUnit, Currency, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 export default function Home() {
@@ -89,6 +89,11 @@ export default function Home() {
     "btc-fire-os:currency",
     "USD",
     (v): v is Currency => v === "USD" || v === "CNY",
+  );
+  const [btcUnit, setBtcUnit] = usePersistentState<BtcUnit>(
+    "btc-fire-os:btc-unit",
+    "BTC",
+    (v): v is BtcUnit => ["BTC", "mBTC", "bits", "sat"].includes(v as string),
   );
   const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
@@ -203,7 +208,7 @@ export default function Home() {
               />
               <HeaderMetric
                 label={t.app.currentStack}
-                value={formatBtc(btcHoldings)}
+                value={formatBtc(btcHoldings, btcUnit)}
                 subvalue={`≈ ${formatCurrency(convertCurrency(btcHoldings * btcPrice.price, currency, cnyRate), 2, currency)}`}
               />
               <HeaderMetric
@@ -225,9 +230,11 @@ export default function Home() {
                 <PortfolioInput
                   averageCostBasis={averageCostBasis}
                   btcHoldings={btcHoldings}
+                  btcUnit={btcUnit}
                   t={t.portfolio}
                   onAverageCostBasisChange={setAverageCostBasis}
                   onBtcHoldingsChange={setBtcHoldings}
+                  onBtcUnitChange={setBtcUnit}
                 />
                 <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
               </div>

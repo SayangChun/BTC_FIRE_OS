@@ -1,4 +1,26 @@
-import type { BtcScenario, Currency, FireResult, ScenarioResult } from "@/lib/types";
+import type { BtcScenario, BtcUnit, Currency, FireResult, ScenarioResult } from "@/lib/types";
+
+export const BTC_UNITS: Record<BtcUnit, { label: string; factor: number; decimals: number; step: string }> = {
+  BTC: { label: "BTC", factor: 1, decimals: 8, step: "0.00000001" },
+  mBTC: { label: "mBTC", factor: 1000, decimals: 5, step: "0.00001" },
+  bits: { label: "bits", factor: 1_000_000, decimals: 2, step: "0.01" },
+  sat: { label: "sat", factor: 100_000_000, decimals: 0, step: "1" },
+};
+
+export const BTC_UNIT_OPTIONS: BtcUnit[] = ["BTC", "mBTC", "bits", "sat"];
+
+export function toSatPrecision(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 100_000_000) / 100_000_000;
+}
+
+export function btcToUnit(btcValue: number, unit: BtcUnit): number {
+  return safeNumber(btcValue) * BTC_UNITS[unit].factor;
+}
+
+export function unitToBtc(unitValue: number, unit: BtcUnit): number {
+  return toSatPrecision(safeNumber(unitValue) / BTC_UNITS[unit].factor);
+}
 
 export function calculatePortfolioValue(
   btcHoldings: number,
@@ -111,10 +133,12 @@ export function formatSignedCurrency(value: number, currency: Currency = "USD"):
   }).format(signedNumber(value));
 }
 
-export function formatBtc(value: number): string {
-  return `${safeNumber(value).toLocaleString("en-US", {
-    maximumFractionDigits: 4,
-  })} BTC`;
+export function formatBtc(value: number, unit: BtcUnit = "BTC"): string {
+  const { factor, label, decimals } = BTC_UNITS[unit];
+  const displayValue = safeNumber(value) * factor;
+  return `${displayValue.toLocaleString("en-US", {
+    maximumFractionDigits: decimals,
+  })} ${label}`;
 }
 
 export function formatPercentage(value: number): string {
