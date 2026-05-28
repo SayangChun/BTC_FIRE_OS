@@ -2,7 +2,7 @@ export const translations = {
   zhCN: {
     languageName: "简体中文",
     languageShort: "简",
-    quote: "知之非难，行之不易",
+    quote: "知之非难，行之不易。",
     app: {
       title: "BTC FIRE OS",
       description: "用一个简洁的财务自由目标，追踪你的比特币资产进度。",
@@ -49,7 +49,8 @@ export const translations = {
       stop: "停止定投",
       stopDetail: "指标处于偏热区，适合暂停新增定投并控制风险。",
       updated: "更新时间",
-      methodology: "价格 / 200日定投成本 × 价格 / 指数增长估值；0.45-1.2 为理论定投区间。",
+      methodology:
+        "价格 / 200 日定投成本 × 价格 / 指数增长估值；0.45-1.2 为理论定投区间。",
     },
     fire: {
       title: "FIRE 计算器",
@@ -81,7 +82,7 @@ export const translations = {
     future: {
       title: "未来 FIRE 预测",
       description:
-        "基于长期 Power Law 拟合、当前估值均值回归和情景区间，估算未来 BTC 价格与 FIRE 所需 BTC。",
+        "基于长期 Power Law 拟合、当前估值均值回归和场景区间，估算未来 BTC 价格与 FIRE 所需 BTC。",
       currentRequiredBtc: "现在所需 BTC",
       tenYearRequiredBtc: "10 年后所需 BTC",
       baseFireTiming: "基准达成时间",
@@ -107,7 +108,7 @@ export const translations = {
       normalAmount: "0.45 - 1.2 日定投",
       highAmount: "AHR999 > 1.2 日定投",
       otherAssets: "当前其他资产",
-      otherAssetsReturn: "其他资产预估年化收益率",
+      otherAssetsReturn: "其他资产预计年化收益率",
       lowFrequency: "低估频率",
       normalFrequency: "积累频率",
       highFrequency: "偏热频率",
@@ -125,7 +126,8 @@ export const translations = {
       years: "年",
       months: "个月",
       notReached: "40 年内未达成",
-      notReachedDetail: "提高定投金额、降低支出或调整提取率后可重新估算。",
+      notReachedDetail:
+        "提高定投金额、降低支出或调整提取率后可重新估算。",
       sampleDays: "历史样本天数",
       loading: "正在计算 AHR999 历史频率",
       error: "暂时无法获取历史频率",
@@ -146,7 +148,7 @@ export const translations = {
   zhTW: {
     languageName: "繁體中文",
     languageShort: "繁",
-    quote: "知之非難，行之不易",
+    quote: "知之非難，行之不易。",
     app: {
       title: "BTC FIRE OS",
       description: "用一個簡潔的財務自由目標，追蹤你的比特幣資產進度。",
@@ -193,7 +195,8 @@ export const translations = {
       stop: "停止定投",
       stopDetail: "指標處於偏熱區，適合暫停新增定投並控制風險。",
       updated: "更新時間",
-      methodology: "價格 / 200日定投成本 × 價格 / 指數增長估值；0.45-1.2 為理論定投區間。",
+      methodology:
+        "價格 / 200 日定投成本 × 價格 / 指數增長估值；0.45-1.2 為理論定投區間。",
     },
     fire: {
       title: "FIRE 計算器",
@@ -269,7 +272,8 @@ export const translations = {
       years: "年",
       months: "個月",
       notReached: "40 年內未達成",
-      notReachedDetail: "提高定投金額、降低支出或調整提取率後可重新估算。",
+      notReachedDetail:
+        "提高定投金額、降低支出或調整提取率後可重新估算。",
       sampleDays: "歷史樣本天數",
       loading: "正在計算 AHR999 歷史頻率",
       error: "暫時無法取得歷史頻率",

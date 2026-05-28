@@ -5,11 +5,9 @@ import {
   formatBtc,
   formatCurrency,
   formatPercentage,
-  convertCurrency,
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type {
-  Currency,
   PriceProjectionPoint,
   PriceProjectionScenario,
 } from "@/lib/types";
@@ -18,8 +16,6 @@ type FutureFireCardProps = {
   points: PriceProjectionPoint[];
   currentRequiredBtc: number;
   firstFireYear: number | null;
-  currency: Currency;
-  cnyRate: number;
   t: Translation["future"];
 };
 
@@ -27,8 +23,6 @@ export function FutureFireCard({
   points,
   currentRequiredBtc,
   firstFireYear,
-  currency,
-  cnyRate,
   t,
 }: FutureFireCardProps) {
   const tenYearBase = points.find(
@@ -83,11 +77,7 @@ export function FutureFireCard({
                   </span>
                   {basePoint ? (
                     <span className="text-xs text-muted">
-                      {formatCurrency(
-                        convertCurrency(basePoint.projectedPortfolioValue, currency, cnyRate),
-                        0,
-                        currency,
-                      )}
+                      {formatCurrency(basePoint.projectedPortfolioValue)}
                     </span>
                   ) : null}
                 </div>

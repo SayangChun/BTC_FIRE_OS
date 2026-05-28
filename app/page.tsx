@@ -209,7 +209,7 @@ export default function Home() {
               <HeaderMetric
                 label={t.app.currentStack}
                 value={formatBtc(btcHoldings, btcUnit)}
-                subvalue={`≈ ${formatCurrency(convertCurrency(btcHoldings * btcPrice.price, currency, cnyRate), 2, currency)}`}
+                subvalue={`≈ ${formatCurrency(btcHoldings * btcPrice.price, 2)}`}
               />
               <HeaderMetric
                 label={t.ahr999.subtitle}
@@ -263,8 +263,6 @@ export default function Home() {
                 />
               </div>
               <FutureFireCard
-                currency={currency}
-                cnyRate={cnyRate}
                 currentRequiredBtc={model.fireResult.requiredBtc}
                 firstFireYear={model.firstFireYear}
                 points={model.futureFireProjection}
