@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { Bitcoin, User, Globe } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
+import { Activity, Bitcoin, Gauge, Globe, Target, User } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
@@ -21,6 +21,7 @@ import {
   convertCurrency,
   formatBtc,
   formatCurrency,
+  formatPercentage,
 } from "@/lib/calculations";
 import { projectDcaFire } from "@/lib/dca-fire";
 import {
@@ -40,7 +41,7 @@ import { useAhr999 } from "@/hooks/use-ahr999";
 import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
-import type { Ahr999Recommendation, BtcUnit, Currency, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import type { Ahr999Recommendation, BtcUnit, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 export default function Home() {
@@ -153,6 +154,7 @@ export default function Home() {
       futureFireProjection,
       firstFireYear: findFirstFireYear(futureFireProjection),
       dcaFireProjection,
+      btcGap: Math.max(fireResult.requiredBtc - btcHoldings, 0),
     };
   }, [
     averageCostBasis,
@@ -169,9 +171,9 @@ export default function Home() {
     <>
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-[1fr_25rem] lg:items-end">
+        <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-[1fr_auto] lg:items-start">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-bitcoin text-black">
+            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md bg-bitcoin text-black">
               <Bitcoin className="h-5 w-5" aria-hidden="true" />
             </div>
             <h1 className="text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
@@ -182,16 +184,15 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <div className="flex-1">
+          <div className="flex flex-col gap-3 rounded-md border border-border bg-surface p-3 lg:min-w-[37rem]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-h-12 flex-1" aria-hidden="true" />
+              <div className="flex flex-wrap items-center gap-4">
                 <LanguageSelector
                   activeLanguage={language}
                   label={t.app.language}
                   onLanguageChange={setLanguage}
                 />
-              </div>
-              <div className="flex-1">
                 <CurrencySelector
                   activeCurrency={currency}
                   label={t.app.currency}
@@ -199,29 +200,35 @@ export default function Home() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <HeaderMetric
-                label={t.app.liveBtcPrice}
-                subvalue={formatPriceStatus(btcPrice.status, btcPrice.lastUpdated, t.app, language)}
-                tone={btcPrice.status === "live" ? "positive" : "default"}
-                value={formatCurrency(btcPrice.price, 2)}
-              />
-              <HeaderMetric
-                label={t.app.currentStack}
-                value={formatBtc(btcHoldings, btcUnit)}
-                subvalue={`≈ ${formatCurrency(btcHoldings * btcPrice.price, 2)}`}
-              />
-              <HeaderMetric
-                label={t.ahr999.subtitle}
-                value={ahr999.status === "ready" ? ahr999.value.toFixed(4) : t.ahr999.loading}
-                tone={ahr999.recommendation === "increase" ? "positive" : "default"}
-                subvalue={ahr999.status === "ready" ? getAhr999Suggestion(ahr999.recommendation, t.ahr999) : undefined}
-              />
-            </div>
           </div>
         </header>
 
-        <div className="flex flex-col gap-5 md:flex-row">
+        <FireCommandSummary
+          ahr999Label={
+            ahr999.status === "ready"
+              ? ahr999.value.toFixed(4)
+              : t.ahr999.loading
+          }
+          ahr999Suggestion={
+            ahr999.status === "ready"
+              ? getAhr999Suggestion(ahr999.recommendation, t.ahr999)
+              : undefined
+          }
+          btcGap={model.btcGap}
+          btcHoldings={btcHoldings}
+          btcPrice={btcPrice.price}
+          btcPriceStatus={formatPriceStatus(
+            btcPrice.status,
+            btcPrice.lastUpdated,
+            t.app,
+            language,
+          )}
+          btcUnit={btcUnit}
+          fireResult={model.fireResult}
+          t={t.summary}
+        />
+
+        <div className="space-y-5">
           <NavSidebar activeTab={activeTab} onTabChange={setActiveTab} t={t.nav} />
 
           {activeTab === "my" ? (
@@ -309,13 +316,155 @@ type LanguageSelectorProps = {
   onLanguageChange: (language: Language) => void;
 };
 
+type FireCommandSummaryProps = {
+  ahr999Label: string;
+  ahr999Suggestion?: string;
+  btcGap: number;
+  btcHoldings: number;
+  btcPrice: number;
+  btcPriceStatus: string;
+  btcUnit: BtcUnit;
+  fireResult: FireResult;
+  t: Translation["summary"];
+};
+
+function FireCommandSummary({
+  ahr999Label,
+  ahr999Suggestion,
+  btcGap,
+  btcHoldings,
+  btcPrice,
+  btcPriceStatus,
+  btcUnit,
+  fireResult,
+  t,
+}: FireCommandSummaryProps) {
+  const progress = Math.min(fireResult.fireProgress * 100, 100);
+  const isReady = fireResult.isFireReady;
+
+  return (
+    <section className="rounded-md border border-border bg-surface p-4 shadow-soft sm:p-5">
+      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr] xl:items-stretch">
+        <div className="flex min-h-72 flex-col justify-between rounded-md border border-border bg-background p-5">
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded bg-bitcoin px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-black">
+              <Target className="h-3.5 w-3.5" aria-hidden="true" />
+              {isReady ? t.readyStatus : t.stackingStatus}
+            </div>
+            <div className="text-sm uppercase tracking-[0.08em] text-muted">
+              {t.primaryLabel}
+            </div>
+            <div className="mt-2 text-5xl font-semibold leading-none text-foreground sm:text-6xl">
+              {formatPercentage(fireResult.fireProgress)}
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface">
+              <div
+                className="h-full rounded-full bg-bitcoin"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <SummaryStat
+              label={t.currentStack}
+              value={formatBtc(btcHoldings, btcUnit)}
+              subvalue={formatCurrency(btcHoldings * btcPrice, 2)}
+            />
+            <SummaryStat
+              label={t.requiredBtc}
+              value={formatBtc(fireResult.requiredBtc)}
+              subvalue={formatCurrency(fireResult.requiredPortfolioValue)}
+            />
+            <SummaryStat
+              label={t.btcGap}
+              tone={btcGap > 0 ? "default" : "positive"}
+              value={formatBtc(btcGap)}
+              subvalue={btcGap > 0 ? formatCurrency(btcGap * btcPrice) : t.noGap}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          <SignalCard
+            icon={<Bitcoin className="h-4 w-4" aria-hidden="true" />}
+            label={t.livePrice}
+            subvalue={btcPriceStatus}
+            tone="positive"
+            value={formatCurrency(btcPrice, 2)}
+          />
+          <SignalCard
+            icon={<Gauge className="h-4 w-4" aria-hidden="true" />}
+            label={t.ahr999}
+            subvalue={ahr999Suggestion}
+            value={ahr999Label}
+          />
+          <SignalCard
+            icon={<Activity className="h-4 w-4" aria-hidden="true" />}
+            label={t.fireTarget}
+            subvalue={formatBtc(fireResult.requiredBtc)}
+            value={formatCurrency(fireResult.requiredPortfolioValue)}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type SummaryStatProps = {
+  label: string;
+  value: string;
+  subvalue?: string;
+  tone?: "default" | "positive";
+};
+
+function SummaryStat({ label, value, subvalue, tone = "default" }: SummaryStatProps) {
+  return (
+    <div className="rounded-md border border-border bg-surface p-4">
+      <div className="text-xs uppercase tracking-[0.08em] text-muted">{label}</div>
+      <div
+        className={cn(
+          "mt-2 break-words text-lg font-semibold text-foreground",
+          tone === "positive" && "text-positive",
+        )}
+      >
+        {value}
+      </div>
+      {subvalue ? <div className="mt-1 text-xs text-muted">{subvalue}</div> : null}
+    </div>
+  );
+}
+
+type SignalCardProps = {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  subvalue?: string;
+  tone?: "default" | "positive";
+};
+
+function SignalCard({ icon, label, value, subvalue, tone = "default" }: SignalCardProps) {
+  return (
+    <div className="rounded-md border border-border bg-background p-4">
+      <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-muted">
+        <span className={tone === "positive" ? "text-positive" : "text-bitcoin"}>
+          {icon}
+        </span>
+        {label}
+      </div>
+      <div className="break-words text-xl font-semibold text-foreground">{value}</div>
+      {subvalue ? <div className="mt-1 text-xs text-muted">{subvalue}</div> : null}
+    </div>
+  );
+}
+
 function LanguageSelector({
   activeLanguage,
   label,
   onLanguageChange,
 }: LanguageSelectorProps) {
   return (
-    <div className="flex items-center justify-between gap-1.5">
+    <div className="flex items-center gap-2">
       <span className="text-xs uppercase tracking-[0.08em] text-muted">
         {label}
       </span>
@@ -353,7 +502,7 @@ function CurrencySelector({
   const currencies: Currency[] = ["USD", "CNY"];
 
   return (
-    <div className="flex items-center justify-between gap-1.5">
+    <div className="flex items-center gap-2">
       <span className="text-xs uppercase tracking-[0.08em] text-muted">
         {label}
       </span>
@@ -384,30 +533,6 @@ function getAhr999Suggestion(
   if (recommendation === "increase") return t.increase;
   if (recommendation === "stop") return t.stop;
   return t.normal;
-}
-
-type HeaderMetricProps = {
-  label: string;
-  value: string;
-  subvalue?: string;
-  tone?: "default" | "positive";
-};
-
-function HeaderMetric({ label, value, subvalue, tone = "default" }: HeaderMetricProps) {
-  return (
-    <div className="rounded-md border border-border bg-surface p-3">
-      <div className="text-xs uppercase tracking-[0.08em] text-muted">{label}</div>
-      <div
-        className={cn(
-          "mt-1 break-words text-base font-semibold text-foreground",
-          tone === "positive" && "text-positive",
-        )}
-      >
-        {value}
-      </div>
-      {subvalue ? <div className="mt-1 text-xs text-muted">{subvalue}</div> : null}
-    </div>
-  );
 }
 
 type AppTranslation = Translation["app"];
@@ -452,14 +577,14 @@ function NavSidebar({ activeTab, onTabChange, t }: NavSidebarProps) {
   ];
 
   return (
-    <nav className="flex shrink-0 flex-row gap-1 md:w-32 md:flex-col">
-      <div className="flex w-full flex-row gap-1 rounded-lg border border-border bg-surface p-1.5 md:flex-col md:p-2">
+    <nav className="flex">
+      <div className="flex w-full flex-row gap-1 rounded-md border border-border bg-surface p-1.5 sm:w-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:text-foreground md:flex-none md:justify-start",
+              "flex flex-1 items-center justify-center gap-2 rounded px-4 py-2.5 text-sm font-medium text-muted transition-colors hover:text-foreground sm:flex-none",
               activeTab === tab.id && "bg-bitcoin text-black hover:text-black",
             )}
             aria-pressed={activeTab === tab.id}
