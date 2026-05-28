@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Flame } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,29 @@ export function FireCalculator({
   onMonthlyExpensesChange,
   onWithdrawalRateChange,
 }: FireCalculatorProps) {
+  const [expenseText, setExpenseText] = useState(() => String(fireResult.monthlyExpenses));
+
+  const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+    setExpenseText(raw);
+    if (raw !== "") {
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed) && parsed >= 0) {
+        onMonthlyExpensesChange(parsed);
+      }
+    }
+  };
+
+  const handleExpenseBlur = () => {
+    const parsed = parseFloat(expenseText);
+    if (isNaN(parsed) || parsed < 0) {
+      setExpenseText(fireResult.monthlyExpenses.toFixed(2));
+    } else {
+      setExpenseText(parsed.toFixed(2));
+    }
+  };
+
   const progress = Math.min(fireResult.fireProgress * 100, 100);
 
   return (
@@ -51,13 +75,10 @@ export function FireCalculator({
                 id="monthly-expenses"
                 className="pl-7"
                 inputMode="decimal"
-                min="0"
-                step="100"
-                type="number"
-                value={fireResult.monthlyExpenses}
-                onChange={(event) =>
-                  onMonthlyExpensesChange(Number(event.target.value))
-                }
+                type="text"
+                value={expenseText}
+                onChange={handleExpenseChange}
+                onBlur={handleExpenseBlur}
               />
             </div>
           </div>

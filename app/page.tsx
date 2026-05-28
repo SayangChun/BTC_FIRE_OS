@@ -247,13 +247,14 @@ export default function Home() {
               </div>
               <div className="grid gap-5 xl:grid-cols-2">
                 <FireCalculator
+                  key={currency}
                   currency={currency}
                   fireResult={{
                     ...model.fireResult,
                     monthlyExpenses: convertCurrency(model.fireResult.monthlyExpenses, currency, cnyRate),
                   }}
                   t={t.fire}
-                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(currency === "CNY" ? value / cnyRate : value)}
+                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(Math.round((currency === "CNY" ? value / cnyRate : value) * 100) / 100)}
                   onWithdrawalRateChange={setWithdrawalRate}
                 />
                 <DcaFirePlannerCard

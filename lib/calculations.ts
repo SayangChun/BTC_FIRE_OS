@@ -144,7 +144,7 @@ export function formatBtc(value: number, unit: BtcUnit = "BTC"): string {
 export function formatPercentage(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "percent",
-    maximumFractionDigits: 1,
+    maximumFractionDigits: 2,
   }).format(safeNumber(value));
 }
 
