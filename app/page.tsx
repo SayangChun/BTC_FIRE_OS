@@ -9,6 +9,7 @@ import { DashboardMetrics } from "@/components/dashboard-metrics";
 import { DcaFirePlannerCard } from "@/components/dca-fire-planner-card";
 import { FireCalculator } from "@/components/fire-calculator";
 import { FutureFireCard } from "@/components/future-fire-card";
+import { LogoMark } from "@/components/logo-mark";
 import { PortfolioInput } from "@/components/portfolio-input";
 import { ScenarioSimulator } from "@/components/scenario-simulator";
 import {
@@ -173,8 +174,9 @@ export default function Home() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-[1fr_auto] lg:items-start">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md bg-bitcoin text-black">
-              <Bitcoin className="h-5 w-5" aria-hidden="true" />
+            <div className="mb-4 flex items-center gap-3">
+              <LogoMark className="h-12 w-12 shrink-0" />
+              <div className="h-px min-w-12 flex-1 bg-gradient-to-r from-bitcoin/80 to-transparent" />
             </div>
             <h1 className="text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
               {t.app.title}
