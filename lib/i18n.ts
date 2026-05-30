@@ -109,7 +109,7 @@ export const translations = {
       projectedBtc: "预计持仓",
       requiredBtc: "所需 BTC",
       fireProgress: "FIRE 进度",
-      fireReady: "已达成",
+      fireReady: "可达成",
       notYet: "未达成",
     },
     dcaPlanner: {
@@ -155,6 +155,13 @@ export const translations = {
       range6M: "6月",
       range3M: "3月",
       range1M: "1月",
+    },
+    settings: {
+      exportData: "导出数据",
+      importData: "导入数据",
+      importBody: "以下数据将被导入：\n\n{fields}\n\n是否继续？",
+      invalidFile: "无效或已损坏的备份文件。",
+      importSuccess: "数据导入成功，页面即将刷新。",
     },
   },
   zhTW: {
@@ -267,7 +274,7 @@ export const translations = {
       projectedBtc: "預計持倉",
       requiredBtc: "所需 BTC",
       fireProgress: "FIRE 進度",
-      fireReady: "已達成",
+      fireReady: "可達成",
       notYet: "未達成",
     },
     dcaPlanner: {
@@ -313,6 +320,13 @@ export const translations = {
       range6M: "6月",
       range3M: "3月",
       range1M: "1月",
+    },
+    settings: {
+      exportData: "匯出資料",
+      importData: "匯入資料",
+      importBody: "以下資料將被匯入：\n\n{fields}\n\n是否繼續？",
+      invalidFile: "無效或已損壞的備份檔案。",
+      importSuccess: "資料匯入成功，頁面即將重新整理。",
     },
   },
   en: {
@@ -429,7 +443,7 @@ export const translations = {
       projectedBtc: "Projected BTC",
       requiredBtc: "Required BTC",
       fireProgress: "FIRE progress",
-      fireReady: "Ready",
+      fireReady: "Achievable",
       notYet: "Not yet",
     },
     dcaPlanner: {
@@ -475,6 +489,13 @@ export const translations = {
       range6M: "6M",
       range3M: "3M",
       range1M: "1M",
+    },
+    settings: {
+      exportData: "Export Data",
+      importData: "Import Data",
+      importBody: "The following data will be imported:\n\n{fields}\n\nContinue?",
+      invalidFile: "Invalid or corrupted backup file.",
+      importSuccess: "Data imported successfully. The page will now reload.",
     },
   },
 } as const;

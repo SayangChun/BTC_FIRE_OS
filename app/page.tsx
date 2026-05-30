@@ -11,6 +11,7 @@ import { FireCalculator } from "@/components/fire-calculator";
 import { FutureFireCard } from "@/components/future-fire-card";
 import { LogoMark } from "@/components/logo-mark";
 import { PortfolioInput } from "@/components/portfolio-input";
+import { DataSettings } from "@/components/data-settings";
 import { ScenarioSimulator } from "@/components/scenario-simulator";
 import {
   calculateCostBasis,
@@ -209,6 +210,8 @@ export default function Home() {
                   label={t.app.currency}
                   onCurrencyChange={setCurrency}
                 />
+                <div className="h-6 w-px bg-border" />
+                <DataSettings t={t.settings} language={language} />
               </div>
             </div>
           </div>

@@ -88,6 +88,20 @@ export type OtherAssetsInput = {
   annualReturnRate: number;
 };
 
+export type ExportData = {
+  version: number;
+  exportedAt: string;
+  language: string;
+  currency: string;
+  btcUnit: string;
+  btcHoldings: number;
+  averageCostBasis: number;
+  monthlyExpenses: number;
+  withdrawalRate: number;
+  dcaPlan: DcaPlanInput;
+  otherAssets: OtherAssetsInput;
+};
+
 export type DcaFireProjection = {
   expectedDailyDca: number;
   expectedMonthlyDca: number;
