@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { Activity, Bitcoin, Gauge, Globe, Target, User } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
@@ -104,6 +104,11 @@ export default function Home() {
   const btcPriceHistory = useBtcPriceHistory();
   const t = translations[language];
 
+  const toUsd = useCallback(
+    (value: number) => (currency === "CNY" ? value / cnyRate : value),
+    [currency, cnyRate],
+  );
+
   const model = useMemo(() => {
     const portfolioValue = calculatePortfolioValue(
       btcHoldings,
@@ -116,7 +121,7 @@ export default function Home() {
       costBasis,
     );
     const fireResult = calculateFireTarget(
-      monthlyExpenses,
+      toUsd(monthlyExpenses),
       withdrawalRate,
       btcPrice.price,
       portfolioValue,
@@ -139,7 +144,10 @@ export default function Home() {
       requiredPortfolioValue: fireResult.requiredPortfolioValue,
       plan: dcaPlan,
       frequency: ahr999Frequency,
-      otherAssets,
+      otherAssets: {
+        ...otherAssets,
+        currentAmount: toUsd(otherAssets.currentAmount),
+      },
     });
 
     return {
@@ -165,6 +173,7 @@ export default function Home() {
     dcaPlan,
     monthlyExpenses,
     otherAssets,
+    toUsd,
     withdrawalRate,
   ]);
 
@@ -253,15 +262,14 @@ export default function Home() {
                   currency={currency}
                   fireResult={{
                     ...model.fireResult,
-                    monthlyExpenses: convertCurrency(model.fireResult.monthlyExpenses, currency, cnyRate),
+                    monthlyExpenses,
                   }}
                   t={t.fire}
-                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(Math.round((currency === "CNY" ? value / cnyRate : value) * 100) / 100)}
+                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(Math.round(value * 100) / 100)}
                   onWithdrawalRateChange={setWithdrawalRate}
                 />
                 <DcaFirePlannerCard
                   currency={currency}
-                  cnyRate={cnyRate}
                   frequency={ahr999Frequency}
                   language={language}
                   otherAssets={otherAssets}

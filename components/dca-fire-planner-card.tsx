@@ -1,12 +1,12 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { CalendarClock } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  convertCurrency,
   currencySymbol,
   formatBtc,
   formatCurrency,
@@ -23,7 +23,6 @@ import type {
 
 type DcaFirePlannerCardProps = {
   currency?: Currency;
-  cnyRate?: number;
   plan: DcaPlanInput;
   otherAssets: OtherAssetsInput;
   frequency: Ahr999Frequency & { status: "loading" | "ready" | "error" };
@@ -36,7 +35,6 @@ type DcaFirePlannerCardProps = {
 
 export function DcaFirePlannerCard({
   currency = "USD",
-  cnyRate = 7.2,
   plan,
   otherAssets,
   frequency,
@@ -46,7 +44,6 @@ export function DcaFirePlannerCard({
   onPlanChange,
   onOtherAssetsChange,
 }: DcaFirePlannerCardProps) {
-  const toDisplay = (usdValue: number) => convertCurrency(usdValue, currency, cnyRate);
   return (
     <Card>
       <CardHeader>
@@ -86,32 +83,19 @@ export function DcaFirePlannerCard({
             currency={currency}
             id="other-assets"
             label={t.otherAssets}
-            value={toDisplay(otherAssets.currentAmount)}
+            value={otherAssets.currentAmount}
             onChange={(value) =>
               onOtherAssetsChange({
                 ...otherAssets,
-                currentAmount: currency === "CNY" ? value / cnyRate : value,
+                currentAmount: Math.round(value * 100) / 100,
               })
             }
           />
-          <div className="space-y-2">
-            <Label htmlFor="other-assets-return">{t.otherAssetsReturn}</Label>
-            <Input
-              id="other-assets-return"
-              inputMode="decimal"
-              min="0"
-              max="100"
-              step="0.1"
-              type="number"
-              value={Number((otherAssets.annualReturnRate * 100).toFixed(2))}
-              onChange={(event) =>
-                onOtherAssetsChange({
-                  ...otherAssets,
-                  annualReturnRate: Number(event.target.value) / 100,
-                })
-              }
-            />
-          </div>
+          <ReturnRateInput
+            label={t.otherAssetsReturn}
+            value={otherAssets.annualReturnRate}
+            onChange={(rate) => onOtherAssetsChange({ ...otherAssets, annualReturnRate: rate })}
+          />
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -225,7 +209,16 @@ type DcaInputProps = {
   onChange: (value: number) => void;
 };
 
-function DcaInput({ currency = "USD", id, label, value, step = "1", onChange }: DcaInputProps) {
+function DcaInput({ currency = "USD", id, label, value, onChange }: DcaInputProps) {
+  const [text, setText] = useState(() => String(value));
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setText(String(value));
+    }
+  }, [value]);
+
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
@@ -237,13 +230,76 @@ function DcaInput({ currency = "USD", id, label, value, step = "1", onChange }: 
           id={id}
           className="pl-7"
           inputMode="decimal"
-          min="0"
-          step={step}
-          type="number"
-          value={value}
-          onChange={(event) => onChange(Number(event.target.value))}
+          type="text"
+          value={text}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+            setText(raw);
+            if (raw !== "") {
+              const parsed = parseFloat(raw);
+              if (!isNaN(parsed) && parsed >= 0) {
+                onChange(parsed);
+              }
+            }
+          }}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => {
+            isFocused.current = false;
+            const parsed = parseFloat(text);
+            setText(isNaN(parsed) || parsed < 0 ? String(value) : String(Math.round(parsed * 100) / 100));
+          }}
         />
       </div>
+    </div>
+  );
+}
+
+function ReturnRateInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (rate: number) => void;
+}) {
+  const displayValue = Number((value * 100).toFixed(1));
+  const [text, setText] = useState(() => String(displayValue));
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setText(String(displayValue));
+    }
+  }, [displayValue]);
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="other-assets-return">{label}</Label>
+      <Input
+        id="other-assets-return"
+        inputMode="decimal"
+        type="text"
+        value={text}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+          setText(raw);
+          if (raw !== "") {
+            const parsed = parseFloat(raw);
+            if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+              onChange(parsed / 100);
+            }
+          }
+        }}
+        onFocus={() => { isFocused.current = true; }}
+        onBlur={() => {
+          isFocused.current = false;
+          const parsed = parseFloat(text);
+          setText(isNaN(parsed) || parsed < 0 || parsed > 100 ? String(displayValue) : String(parsed));
+        }}
+      />
     </div>
   );
 }

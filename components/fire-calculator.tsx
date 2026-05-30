@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Flame } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,11 @@ export function FireCalculator({
   onMonthlyExpensesChange,
   onWithdrawalRateChange,
 }: FireCalculatorProps) {
-  const [expenseText, setExpenseText] = useState(() => String(fireResult.monthlyExpenses));
+  const [expenseText, setExpenseText] = useState(() => {
+    const v = fireResult.monthlyExpenses;
+    return v % 1 === 0 ? String(v) : v.toFixed(2);
+  });
+  const [rateText, setRateText] = useState(() => String((fireResult.withdrawalRate * 100).toFixed(1)));
 
   const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -52,6 +56,27 @@ export function FireCalculator({
       setExpenseText(parsed.toFixed(2));
     }
   };
+
+  const handleRateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+    setRateText(raw);
+    if (raw !== "") {
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+        onWithdrawalRateChange(parsed / 100);
+      }
+    }
+  }, [onWithdrawalRateChange]);
+
+  const handleRateBlur = useCallback(() => {
+    const parsed = parseFloat(rateText);
+    if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+      setRateText(String((fireResult.withdrawalRate * 100).toFixed(1)));
+    } else {
+      setRateText(String(parsed));
+    }
+  }, [rateText, fireResult.withdrawalRate]);
 
   const progress = Math.min(fireResult.fireProgress * 100, 100);
 
@@ -87,14 +112,10 @@ export function FireCalculator({
             <Input
               id="withdrawal-rate"
               inputMode="decimal"
-              min="0"
-              max="100"
-              step="0.1"
-              type="number"
-              value={Number((fireResult.withdrawalRate * 100).toFixed(2))}
-              onChange={(event) =>
-                onWithdrawalRateChange(Number(event.target.value) / 100)
-              }
+              type="text"
+              value={rateText}
+              onChange={handleRateChange}
+              onBlur={handleRateBlur}
             />
           </div>
         </div>

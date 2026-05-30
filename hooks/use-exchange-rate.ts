@@ -4,11 +4,35 @@ import { useEffect, useState } from "react";
 
 const EXCHANGE_RATE_API = "https://api.exchangerate-api.com/v4/latest/USD";
 const CNY_FALLBACK = 7.2;
+const CACHE_KEY = "btc-fire-os:exchange-rate-cny";
+
+function getCachedRate(): number {
+  try {
+    const cached = window.localStorage.getItem(CACHE_KEY);
+    if (cached !== null) {
+      const parsed = JSON.parse(cached);
+      if (typeof parsed === "number" && Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return CNY_FALLBACK;
+}
+
+function setCachedRate(rate: number): void {
+  try {
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(rate));
+  } catch {
+    // ignore
+  }
+}
 
 export type ExchangeRateStatus = "loading" | "ready";
 
 export function useExchangeRate(): { rate: number; status: ExchangeRateStatus } {
-  const [rate, setRate] = useState<number>(CNY_FALLBACK);
+  const [rate, setRate] = useState<number>(getCachedRate);
   const [status, setStatus] = useState<ExchangeRateStatus>("loading");
 
   useEffect(() => {
@@ -27,6 +51,7 @@ export function useExchangeRate(): { rate: number; status: ExchangeRateStatus } 
         if (!cancelled) {
           if (cnyRate && Number.isFinite(cnyRate) && cnyRate > 0) {
             setRate(cnyRate);
+            setCachedRate(cnyRate);
           } else {
             setRate(CNY_FALLBACK);
           }
@@ -35,7 +60,7 @@ export function useExchangeRate(): { rate: number; status: ExchangeRateStatus } 
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (!cancelled) {
-          setRate(CNY_FALLBACK);
+          setRate(getCachedRate());
           setStatus("ready");
         }
       }

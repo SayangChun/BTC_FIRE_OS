@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Wallet } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,96 @@ type PortfolioInputProps = {
   onAverageCostBasisChange: (value: number) => void;
   onBtcUnitChange: (unit: BtcUnit) => void;
 };
+
+function HoldingsInput({
+  btcHoldings,
+  btcUnit,
+  onChange,
+}: {
+  btcHoldings: number;
+  btcUnit: BtcUnit;
+  onChange: (value: number) => void;
+}) {
+  const displayValue = btcToUnit(btcHoldings, btcUnit);
+  const [text, setText] = useState(() => String(displayValue));
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setText(String(displayValue));
+    }
+  }, [displayValue]);
+
+  return (
+    <Input
+      id="btc-holdings"
+      inputMode="decimal"
+      type="text"
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+        setText(raw);
+        if (raw !== "") {
+          const parsed = parseFloat(raw);
+          if (!isNaN(parsed) && parsed >= 0) {
+            onChange(unitToBtc(parsed, btcUnit));
+          }
+        }
+      }}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => {
+        isFocused.current = false;
+        const parsed = parseFloat(text);
+        setText(isNaN(parsed) || parsed < 0 ? String(displayValue) : String(parsed));
+      }}
+    />
+  );
+}
+
+function CostInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const [text, setText] = useState(() => String(value));
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setText(String(value));
+    }
+  }, [value]);
+
+  return (
+    <Input
+      id="average-cost"
+      className="pl-7"
+      inputMode="decimal"
+      type="text"
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+        setText(raw);
+        if (raw !== "") {
+          const parsed = parseFloat(raw);
+          if (!isNaN(parsed) && parsed >= 0) {
+            onChange(parsed);
+          }
+        }
+      }}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => {
+        isFocused.current = false;
+        const parsed = parseFloat(text);
+        setText(isNaN(parsed) || parsed < 0 ? String(value) : String(parsed));
+      }}
+    />
+  );
+}
 
 export function PortfolioInput({
   btcHoldings,
@@ -58,16 +149,10 @@ export function PortfolioInput({
               ))}
             </div>
           </div>
-          <Input
-            id="btc-holdings"
-            inputMode="decimal"
-            min="0"
-            step={BTC_UNITS[btcUnit].step}
-            type="number"
-            value={btcToUnit(btcHoldings, btcUnit)}
-            onChange={(event) =>
-              onBtcHoldingsChange(unitToBtc(Number(event.target.value), btcUnit))
-            }
+          <HoldingsInput
+            btcHoldings={btcHoldings}
+            btcUnit={btcUnit}
+            onChange={onBtcHoldingsChange}
           />
         </div>
         <div className="space-y-2">
@@ -76,17 +161,9 @@ export function PortfolioInput({
             <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted">
               {currencySymbol("USD")}
             </span>
-            <Input
-              id="average-cost"
-              className="pl-7"
-              inputMode="decimal"
-              min="0"
-              step="100"
-              type="number"
+            <CostInput
               value={averageCostBasis}
-              onChange={(event) =>
-                onAverageCostBasisChange(Number(event.target.value))
-              }
+              onChange={onAverageCostBasisChange}
             />
           </div>
         </div>
