@@ -196,9 +196,8 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-md border border-border bg-surface p-3 lg:min-w-[37rem]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-h-12 flex-1" aria-hidden="true" />
+          <div className="flex flex-col gap-3 rounded-md border border-border bg-surface p-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <div className="flex flex-wrap items-center gap-4">
                 <LanguageSelector
                   activeLanguage={language}
