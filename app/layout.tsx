@@ -28,6 +28,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8865581318639446"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         <ErrorBoundary>{children}</ErrorBoundary>
       </body>
