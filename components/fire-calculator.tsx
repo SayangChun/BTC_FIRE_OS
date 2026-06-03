@@ -72,9 +72,9 @@ export function FireCalculator({
   const handleRateBlur = useCallback(() => {
     const parsed = parseFloat(rateText);
     if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-      setRateText(String((fireResult.withdrawalRate * 100).toFixed(1)));
+      setRateText(((fireResult.withdrawalRate * 100).toFixed(1)));
     } else {
-      setRateText(String(parsed));
+      setRateText(parsed.toFixed(1));
     }
   }, [rateText, fireResult.withdrawalRate]);
 

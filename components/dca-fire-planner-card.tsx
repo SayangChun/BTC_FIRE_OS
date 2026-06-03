@@ -10,7 +10,9 @@ import {
   currencySymbol,
   formatBtc,
   formatCurrency,
+  formatInputNumber,
   formatPercentage,
+  toFixedPrecision,
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type {
@@ -210,12 +212,12 @@ type DcaInputProps = {
 };
 
 function DcaInput({ currency = "USD", id, label, value, onChange }: DcaInputProps) {
-  const [text, setText] = useState(() => String(value));
+  const [text, setText] = useState(() => formatInputNumber(value, 2));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current) {
-      setText(String(value));
+      setText(formatInputNumber(value, 2));
     }
   }, [value]);
 
@@ -247,7 +249,10 @@ function DcaInput({ currency = "USD", id, label, value, onChange }: DcaInputProp
           onBlur={() => {
             isFocused.current = false;
             const parsed = parseFloat(text);
-            setText(isNaN(parsed) || parsed < 0 ? String(value) : String(Math.round(parsed * 100) / 100));
+            const safe = isNaN(parsed) || parsed < 0 ? value : parsed;
+            const cleanValue = toFixedPrecision(safe, 2);
+            setText(formatInputNumber(cleanValue, 2));
+            onChange(cleanValue);
           }}
         />
       </div>
@@ -264,13 +269,13 @@ function ReturnRateInput({
   value: number;
   onChange: (rate: number) => void;
 }) {
-  const displayValue = Number((value * 100).toFixed(1));
-  const [text, setText] = useState(() => String(displayValue));
+  const displayValue = toFixedPrecision(value * 100, 1);
+  const [text, setText] = useState(() => formatInputNumber(displayValue, 1));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current) {
-      setText(String(displayValue));
+      setText(formatInputNumber(displayValue, 1));
     }
   }, [displayValue]);
 
@@ -297,7 +302,10 @@ function ReturnRateInput({
         onBlur={() => {
           isFocused.current = false;
           const parsed = parseFloat(text);
-          setText(isNaN(parsed) || parsed < 0 || parsed > 100 ? String(displayValue) : String(parsed));
+          const safe = isNaN(parsed) || parsed < 0 || parsed > 100 ? displayValue : parsed;
+          const cleanValue = toFixedPrecision(safe, 1);
+          setText(formatInputNumber(cleanValue, 1));
+          onChange(cleanValue / 100);
         }}
       />
     </div>

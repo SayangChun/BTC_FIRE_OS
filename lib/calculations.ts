@@ -9,17 +9,31 @@ export const BTC_UNITS: Record<BtcUnit, { label: string; factor: number; decimal
 
 export const BTC_UNIT_OPTIONS: BtcUnit[] = ["BTC", "mBTC", "bits", "sat"];
 
-export function toSatPrecision(value: number): number {
+export function toFixedPrecision(value: number, decimals: number): number {
   if (!Number.isFinite(value)) return 0;
-  return Math.round(value * 100_000_000) / 100_000_000;
+  const safeDecimals = Math.max(0, Math.floor(decimals));
+  const p = Math.pow(10, safeDecimals);
+  return Math.round(safeNumber(value) * p) / p;
+}
+
+export function toSatPrecision(value: number): number {
+  return toFixedPrecision(value, 8);
 }
 
 export function btcToUnit(btcValue: number, unit: BtcUnit): number {
-  return safeNumber(btcValue) * BTC_UNITS[unit].factor;
+  const { factor, decimals } = BTC_UNITS[unit];
+  return toFixedPrecision(safeNumber(btcValue) * factor, decimals);
 }
 
 export function unitToBtc(unitValue: number, unit: BtcUnit): number {
   return toSatPrecision(safeNumber(unitValue) / BTC_UNITS[unit].factor);
+}
+
+export function formatInputNumber(value: number, decimals: number): string {
+  const cleaned = toFixedPrecision(value, decimals);
+  let s = cleaned.toFixed(decimals);
+  s = s.replace(/\.?0+$/, "");
+  return s || "0";
 }
 
 export function calculatePortfolioValue(

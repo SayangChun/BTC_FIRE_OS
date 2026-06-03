@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { Activity, Bitcoin, Gauge, Globe, Target, User } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
@@ -24,6 +24,8 @@ import {
   formatBtc,
   formatCurrency,
   formatPercentage,
+  toFixedPrecision,
+  toSatPrecision,
 } from "@/lib/calculations";
 import { projectDcaFire } from "@/lib/dca-fire";
 import {
@@ -98,6 +100,10 @@ export default function Home() {
     "BTC",
     (v): v is BtcUnit => ["BTC", "mBTC", "bits", "sat"].includes(v as string),
   );
+
+  const setBtcHoldingsClean = useCallback((v: number) => setBtcHoldings(toSatPrecision(v)), [setBtcHoldings]);
+  const setAverageCostBasisClean = useCallback((v: number) => setAverageCostBasis(toFixedPrecision(v, 2)), [setAverageCostBasis]);
+
   const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
   const ahr999 = useAhr999(btcPrice.price);
@@ -109,6 +115,50 @@ export default function Home() {
     (value: number) => (currency === "CNY" ? value / cnyRate : value),
     [currency, cnyRate],
   );
+
+  // Clean persisted numbers once on load so that old noisy floats (e.g. 0.12300000000000001)
+  // from JSON/localStorage don't show up in inputs after reload.
+  useEffect(() => {
+    const cleanedHoldings = toSatPrecision(btcHoldings);
+    if (cleanedHoldings !== btcHoldings) {
+      setBtcHoldings(cleanedHoldings);
+    }
+    const cleanedCost = toFixedPrecision(averageCostBasis, 2);
+    if (cleanedCost !== averageCostBasis) {
+      setAverageCostBasis(cleanedCost);
+    }
+    const cleanedMonthly = toFixedPrecision(monthlyExpenses, 2);
+    if (cleanedMonthly !== monthlyExpenses) {
+      setMonthlyExpenses(cleanedMonthly);
+    }
+    const cleanedRate = toFixedPrecision(withdrawalRate, 6);
+    if (cleanedRate !== withdrawalRate) {
+      setWithdrawalRate(cleanedRate);
+    }
+    const cleanedPlan: DcaPlanInput = {
+      lowDailyAmount: toFixedPrecision(dcaPlan.lowDailyAmount, 2),
+      normalDailyAmount: toFixedPrecision(dcaPlan.normalDailyAmount, 2),
+      highDailyAmount: toFixedPrecision(dcaPlan.highDailyAmount, 2),
+    };
+    if (
+      cleanedPlan.lowDailyAmount !== dcaPlan.lowDailyAmount ||
+      cleanedPlan.normalDailyAmount !== dcaPlan.normalDailyAmount ||
+      cleanedPlan.highDailyAmount !== dcaPlan.highDailyAmount
+    ) {
+      setDcaPlan(cleanedPlan);
+    }
+    const cleanedOther: OtherAssetsInput = {
+      currentAmount: toFixedPrecision(otherAssets.currentAmount, 2),
+      annualReturnRate: toFixedPrecision(otherAssets.annualReturnRate, 4),
+    };
+    if (
+      cleanedOther.currentAmount !== otherAssets.currentAmount ||
+      cleanedOther.annualReturnRate !== otherAssets.annualReturnRate
+    ) {
+      setOtherAssets(cleanedOther);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const model = useMemo(() => {
     const portfolioValue = calculatePortfolioValue(
@@ -252,8 +302,8 @@ export default function Home() {
                   btcHoldings={btcHoldings}
                   btcUnit={btcUnit}
                   t={t.portfolio}
-                  onAverageCostBasisChange={setAverageCostBasis}
-                  onBtcHoldingsChange={setBtcHoldings}
+                  onAverageCostBasisChange={setAverageCostBasisClean}
+                  onBtcHoldingsChange={setBtcHoldingsClean}
                   onBtcUnitChange={setBtcUnit}
                 />
                 <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
@@ -267,7 +317,7 @@ export default function Home() {
                     monthlyExpenses,
                   }}
                   t={t.fire}
-                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(Math.round(value * 100) / 100)}
+                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
                   onWithdrawalRateChange={setWithdrawalRate}
                 />
                 <DcaFirePlannerCard

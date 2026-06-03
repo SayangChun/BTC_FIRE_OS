@@ -6,7 +6,7 @@ import { Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BTC_UNITS, BTC_UNIT_OPTIONS, btcToUnit, currencySymbol, unitToBtc } from "@/lib/calculations";
+import { BTC_UNITS, BTC_UNIT_OPTIONS, btcToUnit, currencySymbol, formatInputNumber, toFixedPrecision, unitToBtc } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
 import type { Translation } from "@/lib/i18n";
 import type { BtcUnit } from "@/lib/types";
@@ -30,15 +30,16 @@ function HoldingsInput({
   btcUnit: BtcUnit;
   onChange: (value: number) => void;
 }) {
+  const decimals = BTC_UNITS[btcUnit].decimals;
   const displayValue = btcToUnit(btcHoldings, btcUnit);
-  const [text, setText] = useState(() => String(displayValue));
+  const [text, setText] = useState(() => formatInputNumber(displayValue, decimals));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current) {
-      setText(String(displayValue));
+      setText(formatInputNumber(displayValue, decimals));
     }
-  }, [displayValue]);
+  }, [displayValue, decimals]);
 
   return (
     <Input
@@ -61,7 +62,10 @@ function HoldingsInput({
       onBlur={() => {
         isFocused.current = false;
         const parsed = parseFloat(text);
-        setText(isNaN(parsed) || parsed < 0 ? String(displayValue) : String(parsed));
+        const safe = isNaN(parsed) || parsed < 0 ? displayValue : parsed;
+        const cleanText = formatInputNumber(safe, decimals);
+        setText(cleanText);
+        onChange(unitToBtc(safe, btcUnit));
       }}
     />
   );
@@ -74,12 +78,12 @@ function CostInput({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const [text, setText] = useState(() => String(value));
+  const [text, setText] = useState(() => formatInputNumber(value, 2));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current) {
-      setText(String(value));
+      setText(formatInputNumber(value, 2));
     }
   }, [value]);
 
@@ -105,7 +109,11 @@ function CostInput({
       onBlur={() => {
         isFocused.current = false;
         const parsed = parseFloat(text);
-        setText(isNaN(parsed) || parsed < 0 ? String(value) : String(parsed));
+        const safe = isNaN(parsed) || parsed < 0 ? value : parsed;
+        const cleanValue = toFixedPrecision(safe, 2);
+        const cleanText = formatInputNumber(cleanValue, 2);
+        setText(cleanText);
+        onChange(cleanValue);
       }}
     />
   );
