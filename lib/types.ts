@@ -86,6 +86,7 @@ export type BtcUnit = "BTC" | "mBTC" | "bits" | "sat";
 export type OtherAssetsInput = {
   currentAmount: number;
   annualReturnRate: number;
+  monthlyCashflow: number;
 };
 
 export type ExportData = {

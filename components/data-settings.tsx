@@ -236,7 +236,8 @@ function formatFieldValue(field: string, value: unknown): string {
     }
     case "otherAssets": {
       const a = value as OtherAssetsInput;
-      return `${formatNumber(a.currentAmount)} (${(a.annualReturnRate * 100).toFixed(1)}%)`;
+      const cf = (a as any).monthlyCashflow ?? 0;
+      return `${formatNumber(a.currentAmount)} +${formatNumber(cf)}/mo (${(a.annualReturnRate * 100).toFixed(1)}%)`;
     }
     default:
       return String(value);

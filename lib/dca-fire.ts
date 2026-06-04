@@ -53,6 +53,7 @@ export function projectDcaFire({
   let projectedOtherAssets = currentOtherAssetsValue;
   const monthlyOtherAssetsReturn =
     (1 + sanitizeReturnRate(otherAssets.annualReturnRate)) ** (1 / 12) - 1;
+  const monthlyCashflow = sanitizePositive((otherAssets as any).monthlyCashflow ?? 0);
 
   for (let month = 1; month <= MAX_PROJECTION_MONTHS; month += 1) {
     const yearsFromNow = month / 12;
@@ -67,6 +68,7 @@ export function projectDcaFire({
     }
 
     projectedOtherAssets *= 1 + monthlyOtherAssetsReturn;
+    projectedOtherAssets += monthlyCashflow;
     const projectedValue = projectedBtc * projectedPrice + projectedOtherAssets;
 
     if (projectedValue >= requiredPortfolioValue) {

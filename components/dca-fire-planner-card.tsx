@@ -80,7 +80,7 @@ export function DcaFirePlannerCard({
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <DcaInput
             currency={currency}
             id="other-assets"
@@ -90,6 +90,18 @@ export function DcaFirePlannerCard({
               onOtherAssetsChange({
                 ...otherAssets,
                 currentAmount: Math.round(value * 100) / 100,
+              })
+            }
+          />
+          <DcaInput
+            currency={currency}
+            id="other-assets-cashflow"
+            label={t.monthlyCashflow}
+            value={otherAssets.monthlyCashflow ?? 0}
+            onChange={(value) =>
+              onOtherAssetsChange({
+                ...otherAssets,
+                monthlyCashflow: Math.round(value * 100) / 100,
               })
             }
           />

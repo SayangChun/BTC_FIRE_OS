@@ -83,6 +83,7 @@ export default function Home() {
     {
     currentAmount: 0,
     annualReturnRate: 0.04,
+    monthlyCashflow: 0,
     },
   );
   const [activeTab, setActiveTab] = usePersistentState<string>(
@@ -147,13 +148,16 @@ export default function Home() {
     ) {
       setDcaPlan(cleanedPlan);
     }
+    const incomingCashflow = typeof (otherAssets as any).monthlyCashflow === "number" ? (otherAssets as any).monthlyCashflow : 0;
     const cleanedOther: OtherAssetsInput = {
       currentAmount: toFixedPrecision(otherAssets.currentAmount, 2),
       annualReturnRate: toFixedPrecision(otherAssets.annualReturnRate, 4),
+      monthlyCashflow: toFixedPrecision(incomingCashflow, 2),
     };
     if (
       cleanedOther.currentAmount !== otherAssets.currentAmount ||
-      cleanedOther.annualReturnRate !== otherAssets.annualReturnRate
+      cleanedOther.annualReturnRate !== otherAssets.annualReturnRate ||
+      cleanedOther.monthlyCashflow !== incomingCashflow
     ) {
       setOtherAssets(cleanedOther);
     }
@@ -198,6 +202,9 @@ export default function Home() {
       otherAssets: {
         ...otherAssets,
         currentAmount: toUsd(otherAssets.currentAmount),
+        monthlyCashflow: toUsd(
+          typeof (otherAssets as any).monthlyCashflow === "number" ? (otherAssets as any).monthlyCashflow : 0,
+        ),
       },
     });
 
