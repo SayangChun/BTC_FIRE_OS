@@ -1,97 +1,127 @@
 # BTC FIRE OS
 
-A Bitcoin-native FIRE (Financial Independence, Retire Early) dashboard for long-term holders. Fetches live data from Binance and supports zhCN / zhTW / en.
+**Bitcoin-native FIRE dashboard** for long-term holders.
+
+Track your BTC portfolio in real time, calculate how close you are to Financial Independence, Retire Early (FIRE), run price scenarios, follow the AHR999 Bitcoin accumulation indicator, and plan DCA buys by market zone — all in a fast, private, zero-backend web app.
+
+- Live data from Binance (price + AHR999)
+- 100% client-side • nothing leaves your browser
+- Static export → works on GitHub Pages with no server
+- Trilingual: 简体中文 / 繁體中文 / English
 
 ## Features
 
-- Live BTC price via Binance WebSocket + REST polling
-- Portfolio value, cost basis, profit/loss, and return metrics
-- FIRE calculator using the 4% withdrawal rule
-- Bear/base/bull BTC price scenario simulator
-- AHR999 Bitcoin hoarding indicator with zone-based recommendations
-- DCA FIRE plan based on AHR999 historical zone frequencies
-- Power Law price projection (1/5/10 years)
-- Accumulation chart
-- Trilingual support (zhCN, zhTW, en)
-- Dark mode only, responsive layout
-- All user inputs persisted to localStorage
+**Live Data**
+- Real-time BTC/USD (and CNY) price via Binance WebSocket + 30s REST fallback
+- AHR999 indicator + historical zone frequency (on-chain style hoarding metric)
+- Power Law price projections (1 / 5 / 10 year)
 
-## Run
+**Portfolio & FIRE**
+- Portfolio value, cost basis, unrealized P/L (absolute + %)
+- FIRE calculator (4% rule by default, fully adjustable)
+- Required BTC to reach your target + progress bar
+- Other assets, annual returns, and monthly cashflow support
+
+**Scenarios & Planning**
+- Bear / Base / Bull price scenario simulator
+- DCA FIRE planner: set different daily buy amounts for AHR999 “low / normal / high” zones
+- Accumulation chart (historical price + your holdings over time)
+
+**Experience**
+- Two main tabs: “我的” (portfolio + FIRE) and “通用” (scenarios + AHR999 chart)
+- Currency toggle: USD ↔ CNY
+- BTC display: BTC or sats
+- Fully persisted to localStorage (no login, survives refresh)
+- Dark mode only, responsive, PWA-installable
+- Fast and works completely offline after first load (except live price updates)
+
+## Quick Start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open:
+Open http://localhost:3000
 
-```txt
-http://localhost:3000
-```
-
-## Build
+### Production build (static)
 
 ```bash
-npm run build    # static export → out/
-npm run lint     # ESLint via next/core-web-vitals
+npm run build     # outputs to out/
+npm run start     # serve the exported site locally
+npm run lint
 ```
 
-## Deploy to GitHub Pages
+## Deploy to GitHub Pages (free, no backend)
 
-1. Push this project to a GitHub repository.
-2. On GitHub, open `Settings > Pages`.
-3. Under `Build and deployment`, set `Source` to `GitHub Actions`.
-4. Push to the `main` branch.
-5. Open the deployed Pages URL shown in the workflow summary.
+1. Push to a GitHub repo.
+2. Go to **Settings → Pages**.
+3. Set **Source** to “GitHub Actions”.
+4. Push to `main`. The included workflow (or equivalent) will build and deploy.
 
-For a repository named `username.github.io`, the site will be served from:
+The site will be available at:
+- `https://<user>.github.io/` (user/org site)
+- `https://<user>.github.io/<repo>/` (project site)
 
-```txt
-https://username.github.io/
+`next.config.ts` automatically sets the correct `basePath` during GitHub Actions builds.
+
+## Privacy & Data
+
+- No server, no database, no analytics, no cookies.
+- All state lives in your browser’s localStorage.
+- Only public market data is fetched (Binance + exchangerate-api.com).
+- Safe to use with sensitive portfolio numbers.
+
+## Tech Stack
+
+- Next.js 15 (App Router) + React 19 + TypeScript
+- Tailwind CSS with custom dark palette
+- Recharts for the accumulation chart
+- Pure functions in `lib/` (no React) for all calculations
+- Client-only data hooks (`hooks/`) with graceful fallbacks
+
+See `AGENTS.md` for full architecture notes, data-fetching details, and conventions (useful for contributors and AI coding agents).
+
+## Project Structure
+
 ```
-
-For a regular project repository, the site will be served from:
-
-```txt
-https://username.github.io/repository-name/
-```
-
-## Structure
-
-```txt
 app/
+  layout.tsx          # metadata, dark html, ErrorBoundary, AdSense
+  page.tsx            # main SPA (“use client”), all tabs & state
   globals.css
-  layout.tsx
-  page.tsx
 components/
-  accumulation-chart.tsx
   ahr999-card.tsx
+  accumulation-chart.tsx
   dashboard-metrics.tsx
   dca-fire-planner-card.tsx
-  error-boundary.tsx
   fire-calculator.tsx
   future-fire-card.tsx
   portfolio-input.tsx
   scenario-simulator.tsx
-  ui/
-    button.tsx
-    card.tsx
-    input.tsx
-    label.tsx
-hooks/
-  use-ahr999-frequency.ts
-  use-ahr999.ts
-  use-btc-price-history.ts
-  use-btc-price.ts
-  use-exchange-rate.ts
-  use-persistent-state.ts
-lib/
-  ahr999.ts
-  calculations.ts
-  dca-fire.ts
-  i18n.ts
-  mock-data.ts
-  price-projection.ts
-  types.ts
-  utils.ts
+  data-settings.tsx
+  error-boundary.tsx
+  logo-mark.tsx
+  ui/                 # minimal Card, Button, Input, Label
+hooks/                # use-btc-price, use-ahr999*, use-persistent-state, …
+lib/                  # calculations, ahr999, dca-fire, price-projection, i18n, types, …
+public/               # icons + webmanifest (PWA)
 ```
+
+## Commands
+
+| Command       | Description                     |
+|---------------|---------------------------------|
+| `npm run dev` | Start dev server (localhost:3000) |
+| `npm run build` | Static export to `out/`       |
+| `npm run start` | Serve the built `out/` locally |
+| `npm run lint`  | Run Next.js ESLint              |
+
+No tests or formatters are configured.
+
+## License
+
+This project is open source. Add a `LICENSE` file if you fork it for redistribution.
+
+---
+
+Made for Bitcoin HODLers who want to plan their exit to freedom.
