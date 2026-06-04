@@ -94,7 +94,7 @@ export const translations = {
     future: {
       title: "未来 FIRE 预测",
       description:
-        "基于长期 Power Law 拟合、当前估值均值回归和场景区间，估算未来 BTC 价格与 FIRE 所需 BTC。",
+        "基于长期 Power Law 拟合（长期保守阻尼）、估值均值回归，叠加通胀调整后的生活开支目标，估算未来 BTC 价格与 FIRE 所需 BTC。",
       currentRequiredBtc: "现在所需 BTC",
       tenYearRequiredBtc: "10 年后所需 BTC",
       baseFireTiming: "基准达成时间",
@@ -259,7 +259,7 @@ export const translations = {
     future: {
       title: "未來 FIRE 預測",
       description:
-        "基於長期 Power Law 擬合、目前估值均值回歸和情境區間，估算未來 BTC 價格與 FIRE 所需 BTC。",
+        "基於長期 Power Law 擬合（長期保守阻尼）、估值均值回歸，叠加通脹調整後的生活開支目標，估算未來 BTC 價格與 FIRE 所需 BTC。",
       currentRequiredBtc: "現在所需 BTC",
       tenYearRequiredBtc: "10 年後所需 BTC",
       baseFireTiming: "基準達成時間",
@@ -428,7 +428,7 @@ export const translations = {
     future: {
       title: "Future FIRE Forecast",
       description:
-        "Estimates future BTC prices and FIRE-required BTC with a long-term Power Law fit, valuation mean reversion, and scenario ranges.",
+        "Estimates future BTC prices and inflation-adjusted FIRE targets (with long-term conservative dampening on Power Law growth), using valuation mean reversion and scenario ranges.",
       currentRequiredBtc: "Required BTC today",
       tenYearRequiredBtc: "Required BTC in 10y",
       baseFireTiming: "Base FIRE timing",

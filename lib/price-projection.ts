@@ -12,8 +12,10 @@ const POWER_LAW_INTERCEPT = -17.01593313;
 const scenarioMultipliers: Record<PriceProjectionScenario, number> = {
   bear: 0.55,
   base: 1,
-  bull: 1.65,
+  bull: 1.55,
 };
+
+const ANNUAL_INFLATION_RATE = 0.025;
 
 export function calculatePowerLawPrice(date = new Date()): number {
   const ageDays = Math.max(
@@ -41,10 +43,11 @@ export function projectBtcPrice(
   const valuationRatio =
     currentPrice > 0 && currentModelPrice > 0 ? currentPrice / currentModelPrice : 1;
 
-  // Current over/undervaluation matters less as the forecast moves further out.
   const meanReversionWeight = Math.max(0.35, 1 - yearsFromNow * 0.065);
-  const baseProjection =
+  let baseProjection =
     futureModelPrice * valuationRatio ** meanReversionWeight;
+  const longTermDamp = Math.max(0.72, 1 - yearsFromNow * 0.028);
+  baseProjection *= longTermDamp;
 
   return baseProjection * scenarioMultipliers[scenario];
 }
@@ -96,11 +99,13 @@ export function buildPriceProjection({
           ? projectAccumulatedBtc(btcHoldings, currentPrice, expectedMonthlyDca, year, scenario)
           : btcHoldings;
       const projectedPortfolioValue = projectedBtc * projectedPrice;
+      const inflationFactor = (1 + ANNUAL_INFLATION_RATE) ** year;
+      const effectiveRequired = requiredPortfolioValue * inflationFactor;
       const requiredBtcForFire =
-        projectedPrice > 0 ? requiredPortfolioValue / projectedPrice : 0;
+        projectedPrice > 0 ? effectiveRequired / projectedPrice : 0;
       const fireProgress =
-        requiredPortfolioValue > 0
-          ? projectedPortfolioValue / requiredPortfolioValue
+        effectiveRequired > 0
+          ? projectedPortfolioValue / effectiveRequired
           : 0;
 
       return {
