@@ -165,15 +165,47 @@ export function DcaFirePlannerCard({
               ? formatFireTime(projection.projectedFireYears, t.years, t.months)
               : t.notReached}
           </div>
-          <p className="mt-2 text-sm leading-6 text-muted">
-            {projection.projectedFireDate
-              ? `${t.estimatedDate} ${formatDate(
-                  projection.projectedFireDate,
-                  language,
-                )}`
-              : t.notReachedDetail}
-          </p>
-          {projection.projectedFireDate ? (
+           <p className="mt-2 text-sm leading-6 text-muted">
+             {projection.projectedFireDate
+               ? `${t.estimatedDate} ${formatDate(
+                   projection.projectedFireDate,
+                   language,
+                 )}`
+               : t.notReachedDetail}
+           </p>
+            {!projection.projectedFireYears && (
+              <div className="mt-3">
+                <div className="mb-1.5 text-xs uppercase tracking-[0.08em] text-muted">快速尝试</div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-surface"
+                    onClick={() =>
+                      onPlanChange({
+                        ...plan,
+                        lowDailyAmount: Math.round((plan.lowDailyAmount + 50) * 100) / 100,
+                        normalDailyAmount: Math.round((plan.normalDailyAmount + 50) * 100) / 100,
+                      })
+                    }
+                  >
+                    低/常规定投各+50
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-surface"
+                    onClick={() =>
+                      onPlanChange({
+                        ...plan,
+                        highDailyAmount: Math.round((plan.highDailyAmount + 30) * 100) / 100,
+                      })
+                    }
+                  >
+                    高档+30
+                  </button>
+                </div>
+              </div>
+            )}
+           {projection.projectedFireDate ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <SmallStat
                 label={t.btcAtFire}

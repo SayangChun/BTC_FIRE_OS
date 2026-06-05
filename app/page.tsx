@@ -303,52 +303,52 @@ export default function Home() {
 
           {activeTab === "my" ? (
             <section className="flex-1 space-y-5">
-              <div className="grid gap-5 xl:grid-cols-2">
-                <PortfolioInput
-                  averageCostBasis={averageCostBasis}
-                  btcHoldings={btcHoldings}
-                  btcUnit={btcUnit}
-                  t={t.portfolio}
-                  onAverageCostBasisChange={setAverageCostBasisClean}
-                  onBtcHoldingsChange={setBtcHoldingsClean}
-                  onBtcUnitChange={setBtcUnit}
+               <div className="grid gap-5 xl:grid-cols-2">
+                 <PortfolioInput
+                   averageCostBasis={averageCostBasis}
+                   btcHoldings={btcHoldings}
+                   btcUnit={btcUnit}
+                   t={t.portfolio}
+                   onAverageCostBasisChange={setAverageCostBasisClean}
+                   onBtcHoldingsChange={setBtcHoldingsClean}
+                   onBtcUnitChange={setBtcUnit}
+                 />
+                 <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
+               </div>
+               <div className="grid gap-5 xl:grid-cols-2">
+                 <FireCalculator
+                   key={currency}
+                   currency={currency}
+                   fireResult={{
+                     ...model.fireResult,
+                     monthlyExpenses,
+                   }}
+                   t={t.fire}
+                   onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
+                   onWithdrawalRateChange={setWithdrawalRate}
+                 />
+                 <DcaFirePlannerCard
+                   currency={currency}
+                   frequency={ahr999Frequency}
+                   language={language}
+                   otherAssets={otherAssets}
+                   plan={dcaPlan}
+                   projection={model.dcaFireProjection}
+                   t={t.dcaPlanner}
+                   onOtherAssetsChange={setOtherAssets}
+                   onPlanChange={setDcaPlan}
+                 />
+               </div>
+                <FutureFireCard
+                  currentRequiredBtc={model.fireResult.requiredBtc}
+                  firstFireYear={model.firstFireYear}
+                  points={model.futureFireProjection}
+                  t={t.future}
                 />
-                <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
-              </div>
-              <div className="grid gap-5 xl:grid-cols-2">
-                <FireCalculator
-                  key={currency}
-                  currency={currency}
-                  fireResult={{
-                    ...model.fireResult,
-                    monthlyExpenses,
-                  }}
-                  t={t.fire}
-                  onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
-                  onWithdrawalRateChange={setWithdrawalRate}
-                />
-                <DcaFirePlannerCard
-                  currency={currency}
-                  frequency={ahr999Frequency}
-                  language={language}
-                  otherAssets={otherAssets}
-                  plan={dcaPlan}
-                  projection={model.dcaFireProjection}
-                  t={t.dcaPlanner}
-                  onOtherAssetsChange={setOtherAssets}
-                  onPlanChange={setDcaPlan}
-                />
-              </div>
-              <FutureFireCard
-                currentRequiredBtc={model.fireResult.requiredBtc}
-                firstFireYear={model.firstFireYear}
-                points={model.futureFireProjection}
-                t={t.future}
-              />
-            </section>
+             </section>
           ) : (
             <section className="flex-1 space-y-5">
-              <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+               <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
                 <div className="space-y-5">
                   <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
                 </div>

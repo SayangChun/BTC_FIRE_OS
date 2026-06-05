@@ -35,8 +35,9 @@ export const translations = {
     portfolio: {
       title: "投资组合输入",
       btcHoldings: "BTC 持仓",
-      averageCostBasis: "平均成本",
+      averageCostBasis: "平均成本 (USD)",
       btcUnit: "BTC 单位",
+      averageCostHelp: "比特币成本基础统一以 USD 记录，便于长期跨周期比较。",
     },
     dashboard: {
       title: "仪表盘",
@@ -68,6 +69,7 @@ export const translations = {
       title: "FIRE 计算器",
       monthlyExpenses: "每月支出",
       withdrawalRate: "资金提取率",
+      withdrawalRateHelp: "经典 4% 规则（Trinity Study）适合 30 年退休期。比特币波动大，多数长期持有者采用 3%~3.5% 更稳健。",
       fireProgress: "FIRE 进度",
       annualExpenses: "年度支出",
       requiredPortfolio: "所需资产",
@@ -101,7 +103,7 @@ export const translations = {
       years: "年",
       yearsLater: "年后",
       modelBased: "模型估算",
-      notReached: "10 年内未达成",
+      notReached: "10 年内（模型下）未达成",
       bear: "保守",
       base: "基准",
       bull: "乐观",
@@ -140,7 +142,7 @@ export const translations = {
       months: "个月",
       notReached: "40 年内未达成",
       notReachedDetail:
-        "提高定投金额、降低支出或调整提取率后可重新估算。",
+        "提高定投金额、降低支出或调低提取率可缩短时间。试试把低档/常规定投提高 50-100，或把提取率降到 3.5%。",
       sampleDays: "历史样本天数",
       loading: "正在计算 AHR999 历史频率",
       error: "暂时无法获取历史频率",
@@ -163,6 +165,8 @@ export const translations = {
       importBody: "以下数据将被导入：\n\n{fields}\n\n是否继续？",
       invalidFile: "无效或已损坏的备份文件。",
       importSuccess: "数据导入成功，页面即将刷新。",
+      resetData: "重置为默认值",
+      resetConfirm: "将所有输入恢复为初始默认值，确定继续？",
     },
   },
   zhTW: {
@@ -201,8 +205,9 @@ export const translations = {
     portfolio: {
       title: "投資組合輸入",
       btcHoldings: "BTC 持倉",
-      averageCostBasis: "平均成本",
+      averageCostBasis: "平均成本 (USD)",
       btcUnit: "BTC 單位",
+      averageCostHelp: "比特幣成本基礎統一以 USD 記錄，便於長期跨週期比較。",
     },
     dashboard: {
       title: "儀表板",
@@ -234,6 +239,7 @@ export const translations = {
       title: "FIRE 計算器",
       monthlyExpenses: "每月支出",
       withdrawalRate: "資金提取率",
+      withdrawalRateHelp: "經典 4% 規則（Trinity Study）適合 30 年退休期。比特幣波動大，多數長期持有者採用 3%~3.5% 更穩健。",
       fireProgress: "FIRE 進度",
       annualExpenses: "年度支出",
       requiredPortfolio: "所需資產",
@@ -267,7 +273,7 @@ export const translations = {
       years: "年",
       yearsLater: "年後",
       modelBased: "模型估算",
-      notReached: "10 年內未達成",
+      notReached: "10 年內（模型下）未達成",
       bear: "保守",
       base: "基準",
       bull: "樂觀",
@@ -306,7 +312,7 @@ export const translations = {
       months: "個月",
       notReached: "40 年內未達成",
       notReachedDetail:
-        "提高定投金額、降低支出或調整提取率後可重新估算。",
+        "提高定投金額、降低支出或調低提取率可縮短時間。試試把低檔/常規定投提高 50-100，或把提取率降到 3.5%。",
       sampleDays: "歷史樣本天數",
       loading: "正在計算 AHR999 歷史頻率",
       error: "暫時無法取得歷史頻率",
@@ -329,6 +335,8 @@ export const translations = {
       importBody: "以下資料將被匯入：\n\n{fields}\n\n是否繼續？",
       invalidFile: "無效或已損壞的備份檔案。",
       importSuccess: "資料匯入成功，頁面即將重新整理。",
+      resetData: "重置為預設值",
+      resetConfirm: "將所有輸入恢復為初始預設值，確定繼續？",
     },
   },
   en: {
@@ -368,8 +376,9 @@ export const translations = {
     portfolio: {
       title: "Portfolio Input",
       btcHoldings: "BTC holdings",
-      averageCostBasis: "Average cost basis",
+      averageCostBasis: "Average cost basis (USD)",
       btcUnit: "BTC Unit",
+      averageCostHelp: "Cost basis is tracked in USD for consistent comparison across market cycles.",
     },
     dashboard: {
       title: "Dashboard",
@@ -404,6 +413,7 @@ export const translations = {
       title: "FIRE Calculator",
       monthlyExpenses: "Monthly expenses",
       withdrawalRate: "Withdrawal rate",
+      withdrawalRateHelp: "The classic 4% rule (Trinity Study) is for ~30-year retirements. Due to Bitcoin's volatility, many long-term holders use a more conservative 3-3.5%.",
       fireProgress: "FIRE progress",
       annualExpenses: "Annual expenses",
       requiredPortfolio: "Required portfolio",
@@ -437,7 +447,7 @@ export const translations = {
       years: "years",
       yearsLater: "years later",
       modelBased: "Model estimate",
-      notReached: "Not reached in 10y",
+      notReached: "Not reached in 10y (model)",
       bear: "Bear",
       base: "Base",
       bull: "Bull",
@@ -476,7 +486,7 @@ export const translations = {
       months: "mo",
       notReached: "Not reached in 40y",
       notReachedDetail:
-        "Increase DCA, lower expenses, or adjust the withdrawal rate to re-estimate.",
+        "Increase DCA amounts, lower expenses or use a more conservative withdrawal rate (e.g. 3.5%) to reach FIRE sooner. Try bumping low/normal DCA by 50-100.",
       sampleDays: "Historical sample days",
       loading: "Calculating AHR999 historical frequency",
       error: "Unable to fetch historical frequency",
@@ -499,6 +509,8 @@ export const translations = {
       importBody: "The following data will be imported:\n\n{fields}\n\nContinue?",
       invalidFile: "Invalid or corrupted backup file.",
       importSuccess: "Data imported successfully. The page will now reload.",
+      resetData: "Reset to defaults",
+      resetConfirm: "Restore all inputs to the initial default values? This cannot be undone.",
     },
   },
 } as const;

@@ -49,13 +49,13 @@ export function FutureFireCard({
             label={t.tenYearRequiredBtc}
             value={tenYearBase ? formatBtc(tenYearBase.requiredBtcForFire) : "--"}
           />
-          <SummaryStat
-            label={t.baseFireTiming}
-            value={firstFireYear ? `${firstFireYear} ${t.years}` : t.notReached}
-          />
-        </div>
+           <SummaryStat
+             label={t.baseFireTiming}
+             value={firstFireYear ? `${firstFireYear} ${t.years}` : t.notReached}
+           />
+          </div>
 
-        <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-1">
+           <div className="grid gap-3 lg:grid-cols-3 xl:grid-cols-1">
           {[1, 5, 10].map((year) => {
             const basePoint = points.find(
               (p) => p.year === year && p.scenario === "base",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Flame } from "lucide-react";
+import { Flame, Info } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -107,17 +107,40 @@ export function FireCalculator({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="withdrawal-rate">{t.withdrawalRate}</Label>
-            <Input
-              id="withdrawal-rate"
-              inputMode="decimal"
-              type="text"
-              value={rateText}
-              onChange={handleRateChange}
-              onBlur={handleRateBlur}
-            />
-          </div>
+           <div className="space-y-2">
+             <Label htmlFor="withdrawal-rate" className="flex items-center gap-1">
+               {t.withdrawalRate}
+                <span className="group relative cursor-help text-muted" aria-label={t.withdrawalRateHelp}>
+                  <Info className="h-3 w-3" />
+                   <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 w-max max-w-[220px] -translate-y-1/2 rounded border border-border bg-background p-2 text-left text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
+                    {t.withdrawalRateHelp}
+                  </span>
+                </span>
+             </Label>
+             <Input
+               id="withdrawal-rate"
+               inputMode="decimal"
+               type="text"
+               value={rateText}
+               onChange={handleRateChange}
+               onBlur={handleRateBlur}
+             />
+             <div className="flex flex-wrap gap-1 pt-0.5">
+               {[3, 3.5, 4].map((r) => (
+                 <button
+                   key={r}
+                   type="button"
+                   onClick={() => {
+                     onWithdrawalRateChange(r / 100);
+                     setRateText(r.toFixed(1));
+                   }}
+                   className="rounded border border-border bg-background px-2 py-0.5 text-xs text-muted hover:bg-surface hover:text-foreground"
+                 >
+                   {r}%
+                 </button>
+               ))}
+             </div>
+           </div>
         </div>
 
         <div className="space-y-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Settings, Upload } from "lucide-react";
+import { Download, RefreshCw, Settings, Upload } from "lucide-react";
 import type { Language } from "@/lib/i18n";
 import type { DcaPlanInput, OtherAssetsInput } from "@/lib/types";
 
@@ -11,6 +11,8 @@ type SettingsTranslation = {
   importBody: string;
   invalidFile: string;
   importSuccess: string;
+  resetData: string;
+  resetConfirm: string;
 };
 
 type DataSettingsProps = {
@@ -148,6 +150,36 @@ export function DataSettings({ t, language }: DataSettingsProps) {
     setIsOpen(false);
   }, [t, language]);
 
+  const handleReset = useCallback(() => {
+    if (!confirm(t.resetConfirm)) return;
+
+    const keyMap: Record<string, string> = {
+      btcHoldings: "btc-fire-os:btc-holdings",
+      averageCostBasis: "btc-fire-os:average-cost-basis",
+      monthlyExpenses: "btc-fire-os:monthly-expenses",
+      withdrawalRate: "btc-fire-os:withdrawal-rate",
+      dcaPlan: "btc-fire-os:dca-plan",
+      otherAssets: "btc-fire-os:other-assets",
+    };
+
+    const defaults: Record<string, unknown> = {
+      btcHoldings: 1.2,
+      averageCostBasis: 42_000,
+      monthlyExpenses: 4_500,
+      withdrawalRate: 0.04,
+      dcaPlan: { lowDailyAmount: 100, normalDailyAmount: 30, highDailyAmount: 0 },
+      otherAssets: { currentAmount: 0, annualReturnRate: 0.04, monthlyCashflow: 0 },
+    };
+
+    for (const [field, storageKey] of Object.entries(keyMap)) {
+      if (field in defaults) {
+        localStorage.setItem(storageKey, JSON.stringify(defaults[field]));
+      }
+    }
+
+    window.location.reload();
+  }, [t]);
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -175,6 +207,14 @@ export function DataSettings({ t, language }: DataSettingsProps) {
           >
             <Upload className="h-4 w-4 shrink-0 text-muted" />
             {t.importData}
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
+            onClick={handleReset}
+          >
+            <RefreshCw className="h-4 w-4 shrink-0 text-muted" />
+            {t.resetData}
           </button>
         </div>
       )}
