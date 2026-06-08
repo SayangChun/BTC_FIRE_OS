@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Activity, Bitcoin, Gauge, Globe, Target, User } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
@@ -48,6 +48,15 @@ import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import type { Ahr999Recommendation, BtcUnit, BtcWallet, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
+
+const DEFAULT_WALLETS: BtcWallet[] = [
+  {
+    id: "default",
+    name: "Main",
+    btc: 1.2,
+    costBasis: 42_000,
+  },
+];
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 export default function Home() {
@@ -58,14 +67,7 @@ export default function Home() {
   );
   const [wallets, setWallets] = usePersistentState<BtcWallet[]>(
     "btc-fire-os:wallets",
-    [
-      {
-        id: "default",
-        name: "Main",
-        btc: 1.2,
-        costBasis: 42_000,
-      },
-    ],
+    DEFAULT_WALLETS,
   );
   const [monthlyExpenses, setMonthlyExpenses] = usePersistentState(
     "btc-fire-os:monthly-expenses",
@@ -132,19 +134,34 @@ export default function Home() {
     [currency, cnyRate],
   );
 
-  // Migration + clean: support legacy single-value storage and sanitize wallet values.
+  // One-time migration from legacy single-value storage + sanitize floats in wallets.
+  // Uses direct localStorage reads for decisions so we never clobber freshly-hydrated wallet data with the default.
+  const didInitWalletsRef = useRef(false);
   useEffect(() => {
-    // Legacy migration: if we have no real wallets (or only the initial default with 1.2 but user had different old value),
-    // check old keys and convert to a single wallet.
-    const hasLegacy = localStorage.getItem("btc-fire-os:btc-holdings") || localStorage.getItem("btc-fire-os:average-cost-basis");
-    const isOnlyDefault = wallets.length === 1 && wallets[0].id === "default" && wallets[0].btc === 1.2 && wallets[0].costBasis === 42_000;
+    if (didInitWalletsRef.current) return;
 
-    if ((wallets.length === 0 || isOnlyDefault) && hasLegacy) {
-      try {
+    try {
+      const walletsRaw = localStorage.getItem("btc-fire-os:wallets");
+      const hasWalletsEntry = walletsRaw !== null;
+      let currentWallets: BtcWallet[] = hasWalletsEntry ? (JSON.parse(walletsRaw) as BtcWallet[]) : [];
+
+      const hasLegacyHoldings = localStorage.getItem("btc-fire-os:btc-holdings") !== null;
+      const hasLegacyCost = localStorage.getItem("btc-fire-os:average-cost-basis") !== null;
+      const hasLegacy = hasLegacyHoldings || hasLegacyCost;
+
+      const looksLikeDefault =
+        currentWallets.length === 1 &&
+        currentWallets[0].id === "default" &&
+        currentWallets[0].btc === 1.2 &&
+        currentWallets[0].costBasis === 42_000;
+
+      // Legacy migration (only when we don't have a proper wallets array yet)
+      if ((!hasWalletsEntry || currentWallets.length === 0 || looksLikeDefault) && hasLegacy) {
         const oldBtcRaw = localStorage.getItem("btc-fire-os:btc-holdings");
         const oldCostRaw = localStorage.getItem("btc-fire-os:average-cost-basis");
         const oldBtc = oldBtcRaw ? toSatPrecision(JSON.parse(oldBtcRaw)) : 0;
         const oldCost = oldCostRaw ? toFixedPrecision(JSON.parse(oldCostRaw), 2) : 0;
+
         if (oldBtc > 0 || oldCost > 0) {
           const migrated: BtcWallet[] = [
             {
@@ -155,26 +172,28 @@ export default function Home() {
             },
           ];
           setWallets(migrated);
-          // Optionally clean old keys (keep them for safety, or remove)
-          // localStorage.removeItem("btc-fire-os:btc-holdings");
-          // localStorage.removeItem("btc-fire-os:average-cost-basis");
+          // We intentionally keep the legacy keys around for older app versions; they are ignored when wallets key exists.
         }
-      } catch {
-        /* ignore bad legacy data */
+        didInitWalletsRef.current = true;
+        // migration happened; still run scalar cleanup below
+      } else if (hasWalletsEntry && Array.isArray(currentWallets) && currentWallets.length > 0) {
+        // Sanitize any noisy floats in previously saved wallets (one-time)
+        const cleaned = currentWallets.map((w) => ({
+          ...w,
+          btc: toSatPrecision(w.btc),
+          costBasis: toFixedPrecision(w.costBasis, 2),
+        }));
+        if (JSON.stringify(cleaned) !== JSON.stringify(currentWallets)) {
+          setWallets(cleaned);
+        }
       }
+    } catch {
+      // ignore corrupt storage
     }
 
-    // Clean current wallets
-    const cleanedWallets = wallets.map((w) => ({
-      ...w,
-      btc: toSatPrecision(w.btc),
-      costBasis: toFixedPrecision(w.costBasis, 2),
-    }));
-    if (JSON.stringify(cleanedWallets) !== JSON.stringify(wallets)) {
-      setWallets(cleanedWallets);
-    }
+    didInitWalletsRef.current = true;
 
-    // Other fields (unchanged)
+    // Always sanitize other scalar persisted values on first load (harmless if already clean)
     const cleanedMonthly = toFixedPrecision(monthlyExpenses, 2);
     if (cleanedMonthly !== monthlyExpenses) {
       setMonthlyExpenses(cleanedMonthly);
