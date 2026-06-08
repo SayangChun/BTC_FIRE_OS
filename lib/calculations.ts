@@ -1,4 +1,4 @@
-import type { BtcScenario, BtcUnit, Currency, FireResult, ScenarioResult } from "@/lib/types";
+import type { BtcScenario, BtcUnit, BtcWallet, Currency, FireResult, ScenarioResult } from "@/lib/types";
 
 export const BTC_UNITS: Record<BtcUnit, { label: string; factor: number; decimals: number; step: string }> = {
   BTC: { label: "BTC", factor: 1, decimals: 8, step: "0.00000001" },
@@ -185,6 +185,21 @@ function safeNumber(value: number): number {
 
 function signedNumber(value: number): number {
   return Number.isFinite(value) ? value : 0;
+}
+
+export function calculateTotalBtc(wallets: BtcWallet[]): number {
+  return wallets.reduce((sum, w) => sum + safeNumber(w.btc), 0);
+}
+
+export function calculateTotalCostBasis(wallets: BtcWallet[]): number {
+  return wallets.reduce((sum, w) => sum + safeNumber(w.btc) * safeNumber(w.costBasis), 0);
+}
+
+export function calculateWeightedCostBasis(wallets: BtcWallet[]): number {
+  const totalBtc = calculateTotalBtc(wallets);
+  if (totalBtc <= 0) return 0;
+  const totalCost = calculateTotalCostBasis(wallets);
+  return toFixedPrecision(totalCost / totalBtc, 2);
 }
 
 function clampWithdrawalRate(value: number): number {

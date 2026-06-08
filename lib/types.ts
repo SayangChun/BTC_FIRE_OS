@@ -1,3 +1,10 @@
+export type BtcWallet = {
+  id: string;
+  name: string;
+  btc: number;
+  costBasis: number;
+};
+
 export type PortfolioInput = {
   btcHoldings: number;
   averageCostBasis: number;
@@ -95,8 +102,10 @@ export type ExportData = {
   language: string;
   currency: string;
   btcUnit: string;
-  btcHoldings: number;
-  averageCostBasis: number;
+  wallets?: BtcWallet[];
+  // legacy single fields (for old backups)
+  btcHoldings?: number;
+  averageCostBasis?: number;
   monthlyExpenses: number;
   withdrawalRate: number;
   dcaPlan: DcaPlanInput;

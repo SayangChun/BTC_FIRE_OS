@@ -20,6 +20,8 @@ import {
   calculateProfitLoss,
   calculateProfitLossPercentage,
   calculateScenarioResults,
+  calculateTotalBtc,
+  calculateWeightedCostBasis,
   convertCurrency,
   formatBtc,
   formatCurrency,
@@ -45,7 +47,7 @@ import { useAhr999 } from "@/hooks/use-ahr999";
 import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
-import type { Ahr999Recommendation, BtcUnit, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
+import type { Ahr999Recommendation, BtcUnit, BtcWallet, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 export default function Home() {
@@ -54,13 +56,16 @@ export default function Home() {
     "zhCN",
     (v): v is Language => languageOptions.includes(v as Language),
   );
-  const [btcHoldings, setBtcHoldings] = usePersistentState(
-    "btc-fire-os:btc-holdings",
-    1.2,
-  );
-  const [averageCostBasis, setAverageCostBasis] = usePersistentState(
-    "btc-fire-os:average-cost-basis",
-    42_000,
+  const [wallets, setWallets] = usePersistentState<BtcWallet[]>(
+    "btc-fire-os:wallets",
+    [
+      {
+        id: "default",
+        name: "Main",
+        btc: 1.2,
+        costBasis: 42_000,
+      },
+    ],
   );
   const [monthlyExpenses, setMonthlyExpenses] = usePersistentState(
     "btc-fire-os:monthly-expenses",
@@ -102,8 +107,18 @@ export default function Home() {
     (v): v is BtcUnit => ["BTC", "mBTC", "bits", "sat"].includes(v as string),
   );
 
-  const setBtcHoldingsClean = useCallback((v: number) => setBtcHoldings(toSatPrecision(v)), [setBtcHoldings]);
-  const setAverageCostBasisClean = useCallback((v: number) => setAverageCostBasis(toFixedPrecision(v, 2)), [setAverageCostBasis]);
+  // Derived totals from multi-wallet source of truth
+  const btcHoldings = calculateTotalBtc(wallets);
+  const averageCostBasis = calculateWeightedCostBasis(wallets);
+
+  const setWalletsClean = useCallback((next: BtcWallet[]) => {
+    const cleaned = next.map((w) => ({
+      ...w,
+      btc: toSatPrecision(w.btc),
+      costBasis: toFixedPrecision(w.costBasis, 2),
+    }));
+    setWallets(cleaned);
+  }, [setWallets]);
 
   const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
@@ -117,17 +132,49 @@ export default function Home() {
     [currency, cnyRate],
   );
 
-  // Clean persisted numbers once on load so that old noisy floats (e.g. 0.12300000000000001)
-  // from JSON/localStorage don't show up in inputs after reload.
+  // Migration + clean: support legacy single-value storage and sanitize wallet values.
   useEffect(() => {
-    const cleanedHoldings = toSatPrecision(btcHoldings);
-    if (cleanedHoldings !== btcHoldings) {
-      setBtcHoldings(cleanedHoldings);
+    // Legacy migration: if we have no real wallets (or only the initial default with 1.2 but user had different old value),
+    // check old keys and convert to a single wallet.
+    const hasLegacy = localStorage.getItem("btc-fire-os:btc-holdings") || localStorage.getItem("btc-fire-os:average-cost-basis");
+    const isOnlyDefault = wallets.length === 1 && wallets[0].id === "default" && wallets[0].btc === 1.2 && wallets[0].costBasis === 42_000;
+
+    if ((wallets.length === 0 || isOnlyDefault) && hasLegacy) {
+      try {
+        const oldBtcRaw = localStorage.getItem("btc-fire-os:btc-holdings");
+        const oldCostRaw = localStorage.getItem("btc-fire-os:average-cost-basis");
+        const oldBtc = oldBtcRaw ? toSatPrecision(JSON.parse(oldBtcRaw)) : 0;
+        const oldCost = oldCostRaw ? toFixedPrecision(JSON.parse(oldCostRaw), 2) : 0;
+        if (oldBtc > 0 || oldCost > 0) {
+          const migrated: BtcWallet[] = [
+            {
+              id: "migrated",
+              name: "Main",
+              btc: oldBtc || 0,
+              costBasis: oldCost || 0,
+            },
+          ];
+          setWallets(migrated);
+          // Optionally clean old keys (keep them for safety, or remove)
+          // localStorage.removeItem("btc-fire-os:btc-holdings");
+          // localStorage.removeItem("btc-fire-os:average-cost-basis");
+        }
+      } catch {
+        /* ignore bad legacy data */
+      }
     }
-    const cleanedCost = toFixedPrecision(averageCostBasis, 2);
-    if (cleanedCost !== averageCostBasis) {
-      setAverageCostBasis(cleanedCost);
+
+    // Clean current wallets
+    const cleanedWallets = wallets.map((w) => ({
+      ...w,
+      btc: toSatPrecision(w.btc),
+      costBasis: toFixedPrecision(w.costBasis, 2),
+    }));
+    if (JSON.stringify(cleanedWallets) !== JSON.stringify(wallets)) {
+      setWallets(cleanedWallets);
     }
+
+    // Other fields (unchanged)
     const cleanedMonthly = toFixedPrecision(monthlyExpenses, 2);
     if (cleanedMonthly !== monthlyExpenses) {
       setMonthlyExpenses(cleanedMonthly);
@@ -304,15 +351,13 @@ export default function Home() {
           {activeTab === "my" ? (
             <section className="flex-1 space-y-5">
                <div className="grid gap-5 xl:grid-cols-2">
-                 <PortfolioInput
-                   averageCostBasis={averageCostBasis}
-                   btcHoldings={btcHoldings}
-                   btcUnit={btcUnit}
-                   t={t.portfolio}
-                   onAverageCostBasisChange={setAverageCostBasisClean}
-                   onBtcHoldingsChange={setBtcHoldingsClean}
-                   onBtcUnitChange={setBtcUnit}
-                 />
+                  <PortfolioInput
+                    wallets={wallets}
+                    btcUnit={btcUnit}
+                    t={t.portfolio}
+                    onWalletsChange={setWalletsClean}
+                    onBtcUnitChange={setBtcUnit}
+                  />
                  <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
                </div>
                <div className="grid gap-5 xl:grid-cols-2">

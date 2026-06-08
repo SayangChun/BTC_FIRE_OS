@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, Settings, Upload } from "lucide-react";
 import type { Language } from "@/lib/i18n";
-import type { DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import type { BtcWallet, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
 
 type SettingsTranslation = {
   exportData: string;
@@ -40,6 +40,8 @@ export function DataSettings({ t, language }: DataSettingsProps) {
       language: "btc-fire-os:language",
       currency: "btc-fire-os:currency",
       btcUnit: "btc-fire-os:btc-unit",
+      wallets: "btc-fire-os:wallets",
+      // legacy single values kept for backward compat with older installs
       btcHoldings: "btc-fire-os:btc-holdings",
       averageCostBasis: "btc-fire-os:average-cost-basis",
       monthlyExpenses: "btc-fire-os:monthly-expenses",
@@ -49,7 +51,7 @@ export function DataSettings({ t, language }: DataSettingsProps) {
     };
 
     const raw: Record<string, unknown> = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
     };
 
@@ -100,6 +102,8 @@ export function DataSettings({ t, language }: DataSettingsProps) {
           { key: "language", label: labels.language },
           { key: "currency", label: labels.currency },
           { key: "btcUnit", label: labels.btcUnit },
+          { key: "wallets", label: labels.wallets },
+          // legacy
           { key: "btcHoldings", label: labels.btcHoldings },
           { key: "averageCostBasis", label: labels.averageCostBasis },
           { key: "monthlyExpenses", label: labels.monthlyExpenses },
@@ -126,6 +130,8 @@ export function DataSettings({ t, language }: DataSettingsProps) {
           language: "btc-fire-os:language",
           currency: "btc-fire-os:currency",
           btcUnit: "btc-fire-os:btc-unit",
+          wallets: "btc-fire-os:wallets",
+          // legacy single values (will be migrated on next load if wallets missing)
           btcHoldings: "btc-fire-os:btc-holdings",
           averageCostBasis: "btc-fire-os:average-cost-basis",
           monthlyExpenses: "btc-fire-os:monthly-expenses",
@@ -138,6 +144,17 @@ export function DataSettings({ t, language }: DataSettingsProps) {
           if (data[field] !== undefined) {
             localStorage.setItem(storageKey, JSON.stringify(data[field]));
           }
+        }
+
+        // Legacy conversion inside the imported file itself (for immediate use)
+        if (!data.wallets && (data.btcHoldings !== undefined || data.averageCostBasis !== undefined)) {
+          const legacyWallet: BtcWallet = {
+            id: "imported-legacy",
+            name: "Main",
+            btc: typeof data.btcHoldings === "number" ? data.btcHoldings : 0,
+            costBasis: typeof data.averageCostBasis === "number" ? data.averageCostBasis : 0,
+          };
+          localStorage.setItem("btc-fire-os:wallets", JSON.stringify([legacyWallet]));
         }
 
         alert(t.importSuccess);
@@ -154,8 +171,7 @@ export function DataSettings({ t, language }: DataSettingsProps) {
     if (!confirm(t.resetConfirm)) return;
 
     const keyMap: Record<string, string> = {
-      btcHoldings: "btc-fire-os:btc-holdings",
-      averageCostBasis: "btc-fire-os:average-cost-basis",
+      wallets: "btc-fire-os:wallets",
       monthlyExpenses: "btc-fire-os:monthly-expenses",
       withdrawalRate: "btc-fire-os:withdrawal-rate",
       dcaPlan: "btc-fire-os:dca-plan",
@@ -163,8 +179,7 @@ export function DataSettings({ t, language }: DataSettingsProps) {
     };
 
     const defaults: Record<string, unknown> = {
-      btcHoldings: 1.2,
-      averageCostBasis: 42_000,
+      wallets: [{ id: "default", name: "Main", btc: 1.2, costBasis: 42_000 }],
       monthlyExpenses: 4_500,
       withdrawalRate: 0.04,
       dcaPlan: { lowDailyAmount: 100, normalDailyAmount: 30, highDailyAmount: 0 },
@@ -176,6 +191,10 @@ export function DataSettings({ t, language }: DataSettingsProps) {
         localStorage.setItem(storageKey, JSON.stringify(defaults[field]));
       }
     }
+
+    // clean legacy single-value keys on reset
+    localStorage.removeItem("btc-fire-os:btc-holdings");
+    localStorage.removeItem("btc-fire-os:average-cost-basis");
 
     window.location.reload();
   }, [t]);
@@ -227,8 +246,9 @@ const fieldLabels: Record<Language, Record<string, string>> = {
     language: "语言",
     currency: "货币",
     btcUnit: "BTC 单位",
-    btcHoldings: "BTC 持仓",
-    averageCostBasis: "平均成本",
+    wallets: "多钱包持仓",
+    btcHoldings: "BTC 持仓（旧版）",
+    averageCostBasis: "平均成本（旧版）",
     monthlyExpenses: "每月支出",
     withdrawalRate: "提取率",
     dcaPlan: "DCA 定投",
@@ -238,8 +258,9 @@ const fieldLabels: Record<Language, Record<string, string>> = {
     language: "語言",
     currency: "貨幣",
     btcUnit: "BTC 單位",
-    btcHoldings: "BTC 持倉",
-    averageCostBasis: "平均成本",
+    wallets: "多錢包持倉",
+    btcHoldings: "BTC 持倉（舊版）",
+    averageCostBasis: "平均成本（舊版）",
     monthlyExpenses: "每月支出",
     withdrawalRate: "提取率",
     dcaPlan: "DCA 定投",
@@ -249,8 +270,9 @@ const fieldLabels: Record<Language, Record<string, string>> = {
     language: "Language",
     currency: "Currency",
     btcUnit: "BTC Unit",
-    btcHoldings: "BTC Holdings",
-    averageCostBasis: "Cost Basis",
+    wallets: "Multi-wallet holdings",
+    btcHoldings: "BTC Holdings (legacy)",
+    averageCostBasis: "Cost Basis (legacy)",
     monthlyExpenses: "Monthly Expenses",
     withdrawalRate: "Withdrawal Rate",
     dcaPlan: "DCA Plan",
@@ -278,6 +300,12 @@ function formatFieldValue(field: string, value: unknown): string {
       const a = value as OtherAssetsInput;
       const cf = (a as any).monthlyCashflow ?? 0;
       return `${formatNumber(a.currentAmount)} +${formatNumber(cf)}/mo (${(a.annualReturnRate * 100).toFixed(1)}%)`;
+    }
+    case "wallets": {
+      const ws = value as BtcWallet[];
+      if (!Array.isArray(ws) || ws.length === 0) return "0 wallets";
+      const total = ws.reduce((s, w) => s + (w.btc || 0), 0);
+      return `${ws.length} wallet(s), total ${formatNumber(total)} BTC`;
     }
     default:
       return String(value);
