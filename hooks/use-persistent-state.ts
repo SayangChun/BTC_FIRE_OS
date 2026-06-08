@@ -20,39 +20,35 @@ export function usePersistentState<T>(
   initialValue: T,
   validate?: (v: unknown) => v is T,
 ) {
-  const [value, setValue] = useState<T>(initialValue);
-  const [hasHydrated, setHasHydrated] = useState(false);
   const validateRef = useRef(validate);
   validateRef.current = validate;
   const initialValueRef = useRef(initialValue);
 
-  useEffect(() => {
+  const [value, setValue] = useState<T>(() => {
     try {
       const storedValue = window.localStorage.getItem(key);
-
       if (storedValue !== null) {
-        const parsed = JSON.parse(storedValue) as T;
+        const parsed = JSON.parse(storedValue);
         const fn = validateRef.current;
-        setValue(!fn || fn(parsed) ? parsed : initialValueRef.current);
+        if (!fn || fn(parsed)) {
+          return parsed as T;
+        }
       }
     } catch {
-      // keep initial value on error
-    } finally {
-      setHasHydrated(true);
+      // fall back to initial on error or missing/invalid
     }
-  }, [key]);
+    return initialValueRef.current;
+  });
 
+  // Write to localStorage whenever the value changes (after mount).
+  // The lazy initializer above ensures the first render already has the persisted value (or default).
   useEffect(() => {
-    if (!hasHydrated) {
-      return;
-    }
-
     try {
       window.localStorage.setItem(key, JSON.stringify(sanitize(value)));
     } catch {
       // Ignore storage failures so the dashboard remains usable.
     }
-  }, [hasHydrated, key, value]);
+  }, [key, value]);
 
   return [value, setValue] as const;
 }
