@@ -291,7 +291,7 @@ function formatFieldValue(field: string, value: unknown): string {
       return names[value as string] ?? String(value);
     }
     case "withdrawalRate":
-      return `${((value as number) * 100).toFixed(1)}%`;
+      return `${((value as number) * 100).toFixed(2)}%`;
     case "dcaPlan": {
       const p = value as DcaPlanInput;
       return `${formatNumber(p.lowDailyAmount)} / ${formatNumber(p.normalDailyAmount)} / ${formatNumber(p.highDailyAmount)}`;

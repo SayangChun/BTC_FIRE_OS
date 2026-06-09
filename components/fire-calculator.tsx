@@ -34,7 +34,7 @@ export function FireCalculator({
     const v = fireResult.monthlyExpenses;
     return v % 1 === 0 ? String(v) : v.toFixed(2);
   });
-  const [rateText, setRateText] = useState(() => String((fireResult.withdrawalRate * 100).toFixed(1)));
+  const [rateText, setRateText] = useState(() => String((fireResult.withdrawalRate * 100).toFixed(2)));
 
   const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -72,9 +72,9 @@ export function FireCalculator({
   const handleRateBlur = useCallback(() => {
     const parsed = parseFloat(rateText);
     if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-      setRateText(((fireResult.withdrawalRate * 100).toFixed(1)));
+      setRateText(((fireResult.withdrawalRate * 100).toFixed(2)));
     } else {
-      setRateText(parsed.toFixed(1));
+      setRateText(parsed.toFixed(2));
     }
   }, [rateText, fireResult.withdrawalRate]);
 
@@ -130,10 +130,10 @@ export function FireCalculator({
                  <button
                    key={r}
                    type="button"
-                   onClick={() => {
-                     onWithdrawalRateChange(r / 100);
-                     setRateText(r.toFixed(1));
-                   }}
+                  onClick={() => {
+                      onWithdrawalRateChange(r / 100);
+                      setRateText(r.toFixed(2));
+                    }}
                    className="rounded border border-border bg-background px-2 py-0.5 text-xs text-muted hover:bg-surface hover:text-foreground"
                  >
                    {r}%
