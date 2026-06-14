@@ -45,15 +45,31 @@ const RANGE_DAYS: Record<RangeKey, number | null> = {
 
 const RANGES: RangeKey[] = ["ALL", "5Y", "3Y", "1Y", "6M", "3M", "1M"];
 
+function downsample<T>(arr: T[], maxPoints: number): T[] {
+  if (arr.length <= maxPoints) return arr;
+  const step = Math.ceil(arr.length / maxPoints);
+  const out: T[] = [];
+  for (let i = 0; i < arr.length; i += step) {
+    out.push(arr[i]);
+  }
+  if (out[out.length - 1] !== arr[arr.length - 1]) out.push(arr[arr.length - 1]);
+  return out;
+}
+
 export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceChartProps) {
   const [range, setRange] = useState<RangeKey>("ALL");
 
-  const filtered = useMemo(() => {
+  const filteredRaw = useMemo(() => {
     const days = RANGE_DAYS[range];
-    if (days === null) return data;
-    const cutoff = Date.now() - days * 86400000;
-    return data.filter((d) => new Date(d.date + "T00:00:00Z").getTime() >= cutoff);
+    if (days === null || data.length === 0) return data;
+    // Use index-based slicing from the end for determinism (no Date.now()).
+    // This guarantees the exact same output on server render and first client render,
+    // avoiding hydration mismatches. Since data is daily, N points ≈ N days.
+    const count = Math.min(data.length, Math.ceil(days));
+    return data.slice(data.length - count);
   }, [data, range]);
+
+  const filtered = useMemo(() => downsample(filteredRaw, 420), [filteredRaw]);
 
   const locale = language === "zhTW" ? "zh-TW" : language === "en" ? "en-US" : "zh-CN";
   const currentPrice = data.length > 0 ? data[data.length - 1].price : 0;
@@ -148,6 +164,8 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
                   stroke="#F7931A"
                   strokeWidth={2}
                   type="monotone"
+                  isAnimationActive={false}
+                  animationDuration={0}
                 />
                 <Brush
                   dataKey="date"
@@ -156,6 +174,7 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
                   fill="#1C1C1C"
                   travellerWidth={8}
                   gap={0.5}
+                  data={filtered}
                 />
               </AreaChart>
             </ResponsiveContainer>

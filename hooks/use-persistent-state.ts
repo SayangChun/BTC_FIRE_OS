@@ -22,26 +22,35 @@ export function usePersistentState<T>(
 ) {
   const validateRef = useRef(validate);
   validateRef.current = validate;
-  const initialValueRef = useRef(initialValue);
 
-  const [value, setValue] = useState<T>(() => {
+  // Always initialize with the caller-provided default.
+  // This guarantees the server-rendered HTML and the first client render match (hydration safety).
+  // Persisted values are applied after mount via the effect below (one-way hydration: storage → state on mount).
+  const [value, setValue] = useState<T>(initialValue);
+
+  // After mount, read localStorage and upgrade state if a valid persisted value exists.
+  // We intentionally do this in an effect so the initial render (used for SSR HTML) is identical on server and client.
+  useEffect(() => {
     try {
       const storedValue = window.localStorage.getItem(key);
       if (storedValue !== null) {
         const parsed = JSON.parse(storedValue);
         const fn = validateRef.current;
         if (!fn || fn(parsed)) {
-          return parsed as T;
+          // Only update if it actually differs (avoid no-op renders)
+          if (JSON.stringify(parsed) !== JSON.stringify(value)) {
+            setValue(parsed as T);
+          }
         }
       }
     } catch {
-      // fall back to initial on error or missing/invalid
+      // ignore corrupt or missing storage
     }
-    return initialValueRef.current;
-  });
+    // We only want to run this once after mount for the given key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
-  // Write to localStorage whenever the value changes (after mount).
-  // The lazy initializer above ensures the first render already has the persisted value (or default).
+  // Write to localStorage whenever the (current) value changes.
   useEffect(() => {
     try {
       window.localStorage.setItem(key, JSON.stringify(sanitize(value)));

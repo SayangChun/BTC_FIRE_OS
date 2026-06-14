@@ -32,12 +32,26 @@ function setCachedRate(rate: number): void {
 export type ExchangeRateStatus = "loading" | "ready";
 
 export function useExchangeRate(): { rate: number; status: ExchangeRateStatus } {
-  const [rate, setRate] = useState<number>(getCachedRate);
+  // Always start with the stable fallback on both server and first client render.
+  // Cached rate (if any) is applied after mount to avoid hydration mismatch.
+  const [rate, setRate] = useState<number>(CNY_FALLBACK);
   const [status, setStatus] = useState<ExchangeRateStatus>("loading");
 
   useEffect(() => {
     let cancelled = false;
     const abortController = new AbortController();
+
+    // Apply any previously cached rate synchronously on mount (before first fetch).
+    // This is safe because it happens after the initial render/hydration.
+    try {
+      const cached = window.localStorage.getItem(CACHE_KEY);
+      if (cached !== null) {
+        const parsed = JSON.parse(cached);
+        if (typeof parsed === "number" && Number.isFinite(parsed) && parsed > 0) {
+          setRate(parsed);
+        }
+      }
+    } catch {}
 
     async function fetchRate() {
       try {
@@ -60,7 +74,7 @@ export function useExchangeRate(): { rate: number; status: ExchangeRateStatus } 
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (!cancelled) {
-          setRate(getCachedRate());
+          // keep whatever we have (fallback or cached), just mark ready
           setStatus("ready");
         }
       }
