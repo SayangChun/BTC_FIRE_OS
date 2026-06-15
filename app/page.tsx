@@ -135,7 +135,9 @@ export default function Home() {
   );
 
   // One-time migration from legacy single-value storage + sanitize floats in wallets.
-  // Uses direct localStorage reads for decisions so we never clobber freshly-hydrated wallet data with the default.
+  // We treat the "btc-fire-os:wallets" array as the single source of truth.
+  // Legacy "btc-holdings"/"average-cost-basis" keys (from pre-multi-wallet versions) are cleaned up
+  // as soon as a wallets array exists, to prevent old data from ever overwriting current holdings.
   const didInitWalletsRef = useRef(false);
   useEffect(() => {
     if (didInitWalletsRef.current) return;
@@ -149,14 +151,10 @@ export default function Home() {
       const hasLegacyCost = localStorage.getItem("btc-fire-os:average-cost-basis") !== null;
       const hasLegacy = hasLegacyHoldings || hasLegacyCost;
 
-      const looksLikeDefault =
-        currentWallets.length === 1 &&
-        currentWallets[0].id === "default" &&
-        currentWallets[0].btc === 1.2 &&
-        currentWallets[0].costBasis === 42_000;
-
-      // Legacy migration (only when we don't have a proper wallets array yet)
-      if ((!hasWalletsEntry || currentWallets.length === 0 || looksLikeDefault) && hasLegacy) {
+      // Only migrate from legacy when there is genuinely no wallets array yet.
+      // We no longer overwrite an existing wallets entry just because its numbers happen to match the old default (1.2 / 42000).
+      // This prevents "我的持仓数据无法保存 / 每次重载都回退到很久之前的数据" when legacy keys contain ancient values.
+      if ((!hasWalletsEntry || currentWallets.length === 0) && hasLegacy) {
         const oldBtcRaw = localStorage.getItem("btc-fire-os:btc-holdings");
         const oldCostRaw = localStorage.getItem("btc-fire-os:average-cost-basis");
         const oldBtc = oldBtcRaw ? toSatPrecision(JSON.parse(oldBtcRaw)) : 0;
@@ -172,10 +170,11 @@ export default function Home() {
             },
           ];
           setWallets(migrated);
-          // We intentionally keep the legacy keys around for older app versions; they are ignored when wallets key exists.
+          // Write immediately so the key exists for the cleanup below on this load.
+          try {
+            localStorage.setItem("btc-fire-os:wallets", JSON.stringify(migrated));
+          } catch {}
         }
-        didInitWalletsRef.current = true;
-        // migration happened; still run scalar cleanup below
       } else if (hasWalletsEntry && Array.isArray(currentWallets) && currentWallets.length > 0) {
         // Sanitize any noisy floats in previously saved wallets (one-time)
         const cleaned = currentWallets.map((w) => ({
@@ -185,7 +184,17 @@ export default function Home() {
         }));
         if (JSON.stringify(cleaned) !== JSON.stringify(currentWallets)) {
           setWallets(cleaned);
+          try {
+            localStorage.setItem("btc-fire-os:wallets", JSON.stringify(cleaned));
+          } catch {}
         }
+      }
+
+      // Now that wallets (array) is the source of truth, nuke the legacy single-value keys.
+      // This is the key fix: future loads will never see hasLegacy + try to migrate old numbers over current holdings.
+      if (localStorage.getItem("btc-fire-os:wallets") !== null) {
+        localStorage.removeItem("btc-fire-os:btc-holdings");
+        localStorage.removeItem("btc-fire-os:average-cost-basis");
       }
     } catch {
       // ignore corrupt storage
@@ -193,7 +202,8 @@ export default function Home() {
 
     didInitWalletsRef.current = true;
 
-    // Always sanitize other scalar persisted values on first load (harmless if already clean)
+    // Scalar sanitization for other fields (compare against the initial render value which is the caller's default;
+    // the usePersistentState restore effect has already put the real persisted value into state for these).
     const cleanedMonthly = toFixedPrecision(monthlyExpenses, 2);
     if (cleanedMonthly !== monthlyExpenses) {
       setMonthlyExpenses(cleanedMonthly);

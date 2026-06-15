@@ -43,6 +43,17 @@ export function usePersistentState<T>(
           }
         }
       }
+
+      // As soon as we have (or just loaded) a real wallets array, nuke the ancient
+      // single-value legacy keys. This is the root cause of "持仓数据无法保存 / 每次重载回退到很久之前的数据".
+      // Those legacy keys may contain data from years ago; while they exist, the one-time
+      // migration in page.tsx can (and did) overwrite the current multi-wallet state.
+      if (key === "btc-fire-os:wallets") {
+        try {
+          localStorage.removeItem("btc-fire-os:btc-holdings");
+          localStorage.removeItem("btc-fire-os:average-cost-basis");
+        } catch {}
+      }
     } catch {
       // ignore corrupt or missing storage
     }
@@ -50,7 +61,10 @@ export function usePersistentState<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  // Write to localStorage whenever the (current) value changes.
+  // Persist on every change (including the upgrade from the restore effect above).
+  // Because we start from the stable initialValue (for hydration) and only upgrade in an effect,
+  // the first write(s) will either be the default (harmless for a new user) or the restored real data.
+  // Subsequent user edits are always written. This is what makes "保存" actually work across reloads.
   useEffect(() => {
     try {
       window.localStorage.setItem(key, JSON.stringify(sanitize(value)));
