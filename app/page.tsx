@@ -442,12 +442,12 @@ export default function Home() {
         <span className="mx-2">·</span>
         <span>Author: </span>
         <a
-          href="https://x.com/Z3n7th"
+          href="https://x.com/SayangChun"
           target="_blank"
           rel="noopener noreferrer"
           className="text-bitcoin transition-colors hover:text-foreground"
         >
-          @Z3n7th
+          @SayangChun
         </a>
       </footer>
     </>
