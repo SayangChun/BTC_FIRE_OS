@@ -13,6 +13,7 @@ import {
   calculateTotalBtc,
   calculateWeightedCostBasis,
   currencySymbol,
+  formatHoldings,
   formatInputNumber,
   toFixedPrecision,
   unitToBtc,
@@ -38,26 +39,29 @@ function HoldingsInput({
   btcUnit: BtcUnit;
   onChange: (value: number) => void;
 }) {
-  const decimals = BTC_UNITS[btcUnit].decimals;
-  const displayValue = btcToUnit(btcHoldings, btcUnit);
-  const [text, setText] = useState(() => formatInputNumber(displayValue, decimals));
+  // Always format from the canonical BTC value + current unit.
+  // This gives full 8 decimals for BTC, and exact whole satoshis for "sat" (e.g. 0.0033 BTC -> 330000).
+  const [text, setText] = useState(() => formatHoldings(btcHoldings, btcUnit));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current) {
-      setText(formatInputNumber(displayValue, decimals));
+      setText(formatHoldings(btcHoldings, btcUnit));
     }
-  }, [displayValue, decimals]);
+  }, [btcHoldings, btcUnit]);
+
+  // For sat we want pure integers (no decimal point allowed in input).
+  const allowPattern = btcUnit === "sat" ? /^\d*$/ : /^\d*\.?\d*$/;
 
   return (
     <Input
       id="btc-holdings"
-      inputMode="decimal"
+      inputMode={btcUnit === "sat" ? "numeric" : "decimal"}
       type="text"
       value={text}
       onChange={(e) => {
         const raw = e.target.value;
-        if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+        if (raw !== "" && !allowPattern.test(raw)) return;
         setText(raw);
         if (raw !== "") {
           const parsed = parseFloat(raw);
@@ -70,10 +74,10 @@ function HoldingsInput({
       onBlur={() => {
         isFocused.current = false;
         const parsed = parseFloat(text);
-        const safe = isNaN(parsed) || parsed < 0 ? displayValue : parsed;
-        const cleanText = formatInputNumber(safe, decimals);
+        const nextBtc = isNaN(parsed) || parsed < 0 ? btcHoldings : unitToBtc(parsed, btcUnit);
+        const cleanText = formatHoldings(nextBtc, btcUnit);
         setText(cleanText);
-        onChange(unitToBtc(safe, btcUnit));
+        onChange(nextBtc);
       }}
     />
   );
@@ -253,7 +257,7 @@ export function PortfolioInput({ wallets, btcUnit, t, onWalletsChange, onBtcUnit
             <div>
               <div className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.totalHoldings}</div>
               <div className="font-semibold tabular-nums text-foreground">
-                {formatInputNumber(btcToUnit(totalBtc, btcUnit), BTC_UNITS[btcUnit].decimals)} {BTC_UNITS[btcUnit].label}
+                {formatHoldings(totalBtc, btcUnit)} {BTC_UNITS[btcUnit].label}
               </div>
             </div>
             <div>
