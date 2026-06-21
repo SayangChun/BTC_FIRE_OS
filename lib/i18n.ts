@@ -31,6 +31,11 @@ export const translations = {
     nav: {
       my: "我的资产",
       general: "通用",
+      plan: "投资计划",
+    },
+    plan: {
+      title: "投资计划",
+      description: "管理定投策略、目标与执行计划。",
     },
     portfolio: {
       title: "投资组合输入",
@@ -208,6 +213,11 @@ export const translations = {
     nav: {
       my: "我的資產",
       general: "通用",
+      plan: "投資計畫",
+    },
+    plan: {
+      title: "投資計畫",
+      description: "管理定投策略、目標與執行計畫。",
     },
     portfolio: {
       title: "投資組合輸入",
@@ -386,6 +396,11 @@ export const translations = {
     nav: {
       my: "My Assets",
       general: "General",
+      plan: "Investment Plan",
+    },
+    plan: {
+      title: "Investment Plan",
+      description: "Manage DCA strategy, goals and execution plans.",
     },
     portfolio: {
       title: "Portfolio Input",

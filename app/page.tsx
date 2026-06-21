@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { Activity, Bitcoin, Gauge, Globe, Target, User } from "lucide-react";
+import { Activity, Bitcoin, Gauge, Globe, ListChecks, Target, User } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
@@ -95,8 +95,8 @@ export default function Home() {
   );
   const [activeTab, setActiveTab] = usePersistentState<string>(
     "btc-fire-os:active-tab",
-    "my",
-    (v): v is string => v === "my" || v === "general",
+    "general",
+    (v): v is string => v === "my" || v === "general" || v === "plan",
   );
   const [currency, setCurrency] = usePersistentState<Currency>(
     "btc-fire-os:currency",
@@ -389,51 +389,51 @@ export default function Home() {
                   />
                  <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
                </div>
-               <div className="grid gap-5 xl:grid-cols-2">
-                 <FireCalculator
-                   key={currency}
-                   currency={currency}
-                   fireResult={{
-                     ...model.fireResult,
-                     monthlyExpenses,
-                   }}
-                   t={t.fire}
-                   onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
-                   onWithdrawalRateChange={setWithdrawalRate}
-                 />
-                 <DcaFirePlannerCard
-                   currency={currency}
-                   frequency={ahr999Frequency}
-                   language={language}
-                   otherAssets={otherAssets}
-                   plan={dcaPlan}
-                   projection={model.dcaFireProjection}
-                   t={t.dcaPlanner}
-                   onOtherAssetsChange={setOtherAssets}
-                   onPlanChange={setDcaPlan}
-                 />
-               </div>
+                <div className="grid gap-5 xl:grid-cols-2">
+                  <FireCalculator
+                    key={currency}
+                    currency={currency}
+                    fireResult={{
+                      ...model.fireResult,
+                      monthlyExpenses,
+                    }}
+                    t={t.fire}
+                    onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
+                    onWithdrawalRateChange={setWithdrawalRate}
+                  />
+                </div>
+              </section>
+            ) : activeTab === "general" ? (
+              <section className="flex-1 space-y-5">
+                 <div className="grid gap-5 xl:grid-cols-2">
+                  <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
+                  <BtcPriceChart data={btcPriceHistory.data} loading={btcPriceHistory.loading} error={btcPriceHistory.error} language={language} t={t.chart} />
+                </div>
+              </section>
+            ) : (
+              <section className="flex-1 space-y-5">
+                <div className="grid gap-5 xl:grid-cols-2">
+                  <DcaFirePlannerCard
+                    currency={currency}
+                    frequency={ahr999Frequency}
+                    language={language}
+                    otherAssets={otherAssets}
+                    plan={dcaPlan}
+                    projection={model.dcaFireProjection}
+                    t={t.dcaPlanner}
+                    onOtherAssetsChange={setOtherAssets}
+                    onPlanChange={setDcaPlan}
+                  />
+                  <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
+                </div>
                 <FutureFireCard
                   currentRequiredBtc={model.fireResult.requiredBtc}
                   firstFireYear={model.firstFireYear}
                   points={model.futureFireProjection}
                   t={t.future}
                 />
-             </section>
-          ) : (
-            <section className="flex-1 space-y-5">
-               <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-                <div className="space-y-5">
-                  <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
-                </div>
-
-                <div className="space-y-5">
-                  <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
-                  <BtcPriceChart data={btcPriceHistory.data} loading={btcPriceHistory.loading} error={btcPriceHistory.error} language={language} t={t.chart} />
-                </div>
-              </div>
-            </section>
-          )}
+              </section>
+            )}
         </div>
       </div>
     </main>
@@ -710,14 +710,15 @@ function formatPriceStatus(
 
 type NavSidebarProps = {
   activeTab: string;
-  onTabChange: (tab: "my" | "general") => void;
-  t: { my: string; general: string };
+  onTabChange: (tab: "my" | "general" | "plan") => void;
+  t: { my: string; general: string; plan: string };
 };
 
 function NavSidebar({ activeTab, onTabChange, t }: NavSidebarProps) {
   const tabs = [
-    { id: "my" as const, label: t.my, icon: User },
     { id: "general" as const, label: t.general, icon: Globe },
+    { id: "my" as const, label: t.my, icon: User },
+    { id: "plan" as const, label: t.plan, icon: ListChecks },
   ];
 
   return (
