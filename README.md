@@ -17,10 +17,12 @@ Track your BTC portfolio in real time, calculate how close you are to Financial 
 - Power Law price projections (1 / 5 / 10 year)
 
 **Portfolio & FIRE**
+- Multi-wallet support (add/rename/remove wallets)
 - Portfolio value, cost basis, unrealized P/L (absolute + %)
 - FIRE calculator (4% rule by default, fully adjustable)
 - Required BTC to reach your target + progress bar
 - Other assets, annual returns, and monthly cashflow support
+- BTC units: BTC / mBTC / bits / sat (switchable, persisted)
 
 **Scenarios & Planning**
 - Bear / Base / Bull price scenario simulator
@@ -28,9 +30,10 @@ Track your BTC portfolio in real time, calculate how close you are to Financial 
 - Accumulation chart (historical price + your holdings over time)
 
 **Experience**
-- Two main tabs: “我的” (portfolio + FIRE) and “通用” (scenarios + AHR999 chart)
+- Three tabs: “通用” (AHR999 + chart), “我的资产” (multi-wallet portfolio + FIRE), “投资计划” (DCA planner + scenarios + future projections)
 - Currency toggle: USD ↔ CNY
-- BTC display: BTC or sats
+- BTC units: BTC / mBTC / bits / sat (switchable)
+- Data backup/restore + reset via settings (JSON export/import)
 - Fully persisted to localStorage (no login, survives refresh)
 - Dark mode only, responsive, PWA-installable
 - Fast and works completely offline after first load (except live price updates)
@@ -57,13 +60,13 @@ npm run lint
 1. Push to a GitHub repo.
 2. Go to **Settings → Pages**.
 3. Set **Source** to “GitHub Actions”.
-4. Push to `main`. The included workflow (or equivalent) will build and deploy.
+4. Push to `main`. Build with `npm run build` (outputs to `out/`) and deploy the static files.
 
 The site will be available at:
 - `https://<user>.github.io/` (user/org site)
 - `https://<user>.github.io/<repo>/` (project site)
 
-`next.config.ts` automatically sets the correct `basePath` during GitHub Actions builds.
+`next.config.ts` sets `basePath`/`assetPrefix` automatically when `GITHUB_ACTIONS=true` (project sites only). No workflow file is included in the repo.
 
 ## Privacy & Data
 
@@ -87,7 +90,7 @@ See `AGENTS.md` for full architecture notes, data-fetching details, and conventi
 ```
 app/
   layout.tsx          # metadata, dark html, ErrorBoundary, AdSense
-  page.tsx            # main SPA (“use client”), all tabs & state
+  page.tsx            # main SPA (“use client”), tab routing + state
   globals.css
 components/
   ahr999-card.tsx
@@ -96,15 +99,15 @@ components/
   dca-fire-planner-card.tsx
   fire-calculator.tsx
   future-fire-card.tsx
-  portfolio-input.tsx
+  portfolio-input.tsx   # multi-wallet manager
   scenario-simulator.tsx
-  data-settings.tsx
+  data-settings.tsx     # export / import / reset
   error-boundary.tsx
   logo-mark.tsx
-  ui/                 # minimal Card, Button, Input, Label
-hooks/                # use-btc-price, use-ahr999*, use-persistent-state, …
-lib/                  # calculations, ahr999, dca-fire, price-projection, i18n, types, …
-public/               # icons + webmanifest (PWA)
+  ui/                   # minimal Card, Button, Input, Label
+hooks/                  # use-btc-price (WS+REST), use-ahr999*, use-btc-price-history, use-exchange-rate, use-persistent-state
+lib/                    # pure calculations (no React): calculations, ahr999, dca-fire, price-projection, i18n, types, mock-data
+public/                 # icons + webmanifest (PWA)
 ```
 
 ## Commands
@@ -116,7 +119,7 @@ public/               # icons + webmanifest (PWA)
 | `npm run start` | Serve the built `out/` locally |
 | `npm run lint`  | Run Next.js ESLint              |
 
-No tests or formatters are configured.
+No tests, formatter, or typecheck scripts exist. Do not add any.
 
 ## License
 
