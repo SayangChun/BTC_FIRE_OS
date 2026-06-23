@@ -263,9 +263,9 @@ export function PortfolioInput({ wallets, btcUnit, t, onWalletsChange, onBtcUnit
             <div>
               <div className="flex items-center gap-1 text-[10px] uppercase tracking-[0.06em] text-muted">
                 {t.weightedAvgCost}
-                <span className="group relative cursor-help text-muted" aria-label={t.averageCostHelp}>
+                <span className="group/icon relative cursor-help text-muted" aria-label={t.averageCostHelp}>
                   <Info className="h-3 w-3" />
-                  <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 w-max max-w-[260px] -translate-y-1/2 rounded border border-border bg-background p-2 text-left text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
+                  <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 w-max max-w-[260px] -translate-y-1/2 rounded border border-border bg-background p-2 text-left text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover/icon:opacity-100">
                     {t.averageCostHelp}
                   </span>
                 </span>

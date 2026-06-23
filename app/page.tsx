@@ -870,7 +870,7 @@ function ModuleList({ rows, onRowsChange, renderModule, getModuleLabel, headerLa
         {rows.map((row, index) => {
           if (row.kind === "single") {
             return (
-              <div key={`row-${index}-${row.id}`} className="group relative rounded-md border border-border bg-surface">
+              <div key={`row-${index}-${row.id}`} className="group/row relative rounded-md border border-border bg-surface">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted">
                   <div className="flex items-center gap-2">
                     <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />

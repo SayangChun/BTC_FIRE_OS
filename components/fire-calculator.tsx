@@ -110,12 +110,12 @@ export function FireCalculator({
            <div className="space-y-2">
              <Label htmlFor="withdrawal-rate" className="flex items-center gap-1">
                {t.withdrawalRate}
-                <span className="group relative cursor-help text-muted" aria-label={t.withdrawalRateHelp}>
-                  <Info className="h-3 w-3" />
-                   <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 w-max max-w-[220px] -translate-y-1/2 rounded border border-border bg-background p-2 text-left text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover:opacity-100">
-                    {t.withdrawalRateHelp}
-                  </span>
-                </span>
+                 <span className="group/icon relative cursor-help text-muted" aria-label={t.withdrawalRateHelp}>
+                   <Info className="h-3 w-3" />
+                    <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 w-max max-w-[220px] -translate-y-1/2 rounded border border-border bg-background p-2 text-left text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover/icon:opacity-100">
+                     {t.withdrawalRateHelp}
+                   </span>
+                 </span>
              </Label>
              <Input
                id="withdrawal-rate"
