@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { Activity, Bitcoin, Gauge, Globe, ListChecks, Target, User } from "lucide-react";
+import { Activity, Bitcoin, Gauge, GripVertical, Target } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
@@ -59,6 +59,43 @@ const DEFAULT_WALLETS: BtcWallet[] = [
 ];
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
+// Module identifiers for the single-page reorderable layout.
+// Personal/portfolio-related modules first by default.
+const MODULE_IDS = ["portfolio", "dashboard", "fire", "dca", "ahr999", "chart", "scenario", "future"] as const;
+type ModuleId = (typeof MODULE_IDS)[number];
+
+type ModuleRow =
+  | { kind: "single"; id: ModuleId }
+  | { kind: "pair"; left: ModuleId; right: ModuleId };
+
+const DEFAULT_ROWS: readonly ModuleRow[] = [
+  // 最顶部并排：FIRE计算器（左） + 投资组合输入（右）
+  { kind: "pair", left: "fire", right: "portfolio" },
+  { kind: "pair", left: "dashboard", right: "ahr999" },
+  // 动态定投 FIRE 计划（左） + 场景模拟（右）并排
+  { kind: "pair", left: "dca", right: "scenario" },
+  // 未来 FIRE 预测 单独一行，放在上面并排模块的下方
+  { kind: "single", id: "future" },
+  { kind: "single", id: "chart" },
+];
+
+function isModuleRow(v: unknown): v is ModuleRow {
+  if (!v || typeof v !== "object") return false;
+  const r = v as any;
+  if (r.kind === "single") {
+    return typeof r.id === "string" && (MODULE_IDS as readonly string[]).includes(r.id);
+  }
+  if (r.kind === "pair") {
+    return (
+      typeof r.left === "string" &&
+      typeof r.right === "string" &&
+      (MODULE_IDS as readonly string[]).includes(r.left) &&
+      (MODULE_IDS as readonly string[]).includes(r.right)
+    );
+  }
+  return false;
+}
+
 export default function Home() {
   const [language, setLanguage] = usePersistentState<Language>(
     "btc-fire-os:language",
@@ -93,11 +130,37 @@ export default function Home() {
     monthlyCashflow: 0,
     },
   );
-  const [activeTab, setActiveTab] = usePersistentState<string>(
-    "btc-fire-os:active-tab",
-    "general",
-    (v): v is string => v === "my" || v === "general" || v === "plan",
+  // Versioned key + auto-migration so existing users immediately see the new layout:
+  // Top row = FIRE计算器 (left) + 投资组合输入 (right)
+  const [moduleRows, setModuleRows] = usePersistentState<ModuleRow[]>(
+    "btc-fire-os:module-rows:v2",
+    [...DEFAULT_ROWS],
+    (v): v is ModuleRow[] => Array.isArray(v) && v.every(isModuleRow),
   );
+
+  // One-time migration: if saved rows don't start with (fire left + portfolio right), force the new default.
+  // Also nuke any data under the very old key.
+  useEffect(() => {
+    try {
+      localStorage.removeItem("btc-fire-os:module-rows");
+      localStorage.removeItem("btc-fire-os:module-order");
+    } catch {}
+
+    const first = moduleRows[0];
+    const isCorrectTop =
+      first &&
+      first.kind === "pair" &&
+      first.left === "fire" &&
+      first.right === "portfolio";
+
+    if (!isCorrectTop) {
+      // Only update if it actually differs (avoid render loops)
+      if (JSON.stringify(moduleRows) !== JSON.stringify(DEFAULT_ROWS)) {
+        setModuleRows([...DEFAULT_ROWS]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [currency, setCurrency] = usePersistentState<Currency>(
     "btc-fire-os:currency",
     "USD",
@@ -374,12 +437,19 @@ export default function Home() {
           t={t.summary}
         />
 
-        <div className="space-y-5">
-          <NavSidebar activeTab={activeTab} onTabChange={setActiveTab} t={t.nav} />
-
-          {activeTab === "my" ? (
-            <section className="flex-1 space-y-5">
-               <div className="grid gap-5 xl:grid-cols-2">
+        {/* Single-page module layout with rows.
+            - "pair" rows: two small modules side-by-side (left/right swap allowed).
+            - Up/down moves the entire row (pair stays together).
+            - Personal data prioritized by default. */}
+        <ModuleList
+          rows={moduleRows}
+          onRowsChange={setModuleRows}
+          headerLabel={t.modules?.header ?? "全部模块（从上到下）"}
+          resetLabel={t.modules?.reset ?? "重置顺序"}
+          renderModule={(id) => {
+            switch (id) {
+              case "portfolio":
+                return (
                   <PortfolioInput
                     wallets={wallets}
                     btcUnit={btcUnit}
@@ -387,9 +457,11 @@ export default function Home() {
                     onWalletsChange={setWalletsClean}
                     onBtcUnitChange={setBtcUnit}
                   />
-                 <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />
-               </div>
-                <div className="grid gap-5 xl:grid-cols-2">
+                );
+              case "dashboard":
+                return <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />;
+              case "fire":
+                return (
                   <FireCalculator
                     key={currency}
                     currency={currency}
@@ -401,18 +473,9 @@ export default function Home() {
                     onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
                     onWithdrawalRateChange={setWithdrawalRate}
                   />
-                </div>
-              </section>
-            ) : activeTab === "general" ? (
-              <section className="flex-1 space-y-5">
-                 <div className="grid gap-5 xl:grid-cols-2">
-                  <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
-                  <BtcPriceChart data={btcPriceHistory.data} loading={btcPriceHistory.loading} error={btcPriceHistory.error} language={language} t={t.chart} />
-                </div>
-              </section>
-            ) : (
-              <section className="flex-1 space-y-5">
-                <div className="grid gap-5 xl:grid-cols-2">
+                );
+              case "dca":
+                return (
                   <DcaFirePlannerCard
                     currency={currency}
                     frequency={ahr999Frequency}
@@ -424,17 +487,59 @@ export default function Home() {
                     onOtherAssetsChange={setOtherAssets}
                     onPlanChange={setDcaPlan}
                   />
-                  <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />
-                </div>
-                <FutureFireCard
-                  currentRequiredBtc={model.fireResult.requiredBtc}
-                  firstFireYear={model.firstFireYear}
-                  points={model.futureFireProjection}
-                  t={t.future}
-                />
-              </section>
-            )}
-        </div>
+                );
+              case "ahr999":
+                return (
+                  <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
+                );
+              case "chart":
+                return (
+                  <BtcPriceChart
+                    data={btcPriceHistory.data}
+                    loading={btcPriceHistory.loading}
+                    error={btcPriceHistory.error}
+                    language={language}
+                    t={t.chart}
+                  />
+                );
+              case "scenario":
+                return <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />;
+              case "future":
+                return (
+                  <FutureFireCard
+                    currentRequiredBtc={model.fireResult.requiredBtc}
+                    firstFireYear={model.firstFireYear}
+                    points={model.futureFireProjection}
+                    t={t.future}
+                  />
+                );
+              default:
+                return null;
+            }
+          }}
+          getModuleLabel={(id) => {
+            switch (id) {
+              case "portfolio":
+                return t.portfolio.title;
+              case "dashboard":
+                return t.dashboard.title;
+              case "fire":
+                return t.fire.title;
+              case "dca":
+                return t.dcaPlanner.title;
+              case "ahr999":
+                return t.ahr999.title;
+              case "chart":
+                return t.chart.title;
+              case "scenario":
+                return t.scenarios.title;
+              case "future":
+                return t.future.title;
+              default:
+                return id;
+            }
+          }}
+        />
       </div>
     </main>
       <footer className="border-t border-border py-6 text-center text-sm text-muted">
@@ -708,38 +813,143 @@ function formatPriceStatus(
   return `${statusLabel} ${updatedAt}`;
 }
 
-type NavSidebarProps = {
-  activeTab: string;
-  onTabChange: (tab: "my" | "general" | "plan") => void;
-  t: { my: string; general: string; plan: string };
+// ------------------------------
+// Reorderable single-page modules (rows)
+// ------------------------------
+
+type ModuleListProps = {
+  rows: ModuleRow[];
+  onRowsChange: (next: ModuleRow[]) => void;
+  renderModule: (id: ModuleId) => ReactNode;
+  getModuleLabel: (id: ModuleId) => string;
+  headerLabel: string;
+  resetLabel: string;
 };
 
-function NavSidebar({ activeTab, onTabChange, t }: NavSidebarProps) {
-  const tabs = [
-    { id: "general" as const, label: t.general, icon: Globe },
-    { id: "my" as const, label: t.my, icon: User },
-    { id: "plan" as const, label: t.plan, icon: ListChecks },
-  ];
+function ModuleList({ rows, onRowsChange, renderModule, getModuleLabel, headerLabel, resetLabel }: ModuleListProps) {
+  const moveRow = useCallback(
+    (from: number, to: number) => {
+      if (to < 0 || to >= rows.length || from === to) return;
+      const next = [...rows];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      onRowsChange(next);
+    },
+    [rows, onRowsChange],
+  );
+
+  const swapPair = useCallback(
+    (rowIndex: number) => {
+      const r = rows[rowIndex];
+      if (!r || r.kind !== "pair") return;
+      const next = [...rows];
+      next[rowIndex] = { kind: "pair", left: r.right, right: r.left };
+      onRowsChange(next);
+    },
+    [rows, onRowsChange],
+  );
+
+  const reset = useCallback(() => {
+    onRowsChange([...DEFAULT_ROWS]);
+  }, [onRowsChange]);
 
   return (
-    <nav className="flex">
-      <div className="flex w-full flex-row gap-1 rounded-md border border-border bg-surface p-1.5 sm:w-auto">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded px-4 py-2.5 text-sm font-medium text-muted transition-colors hover:text-foreground sm:flex-none",
-              activeTab === tab.id && "bg-bitcoin text-black hover:text-black",
-            )}
-            aria-pressed={activeTab === tab.id}
-            onClick={() => onTabChange(tab.id)}
-          >
-            <tab.icon className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">{tab.label}</span>
-          </button>
-        ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-xs uppercase tracking-[0.08em] text-muted">
+        <span>{headerLabel}</span>
+        <button
+          type="button"
+          onClick={reset}
+          className="rounded border border-border px-2 py-1 text-[10px] hover:text-foreground"
+        >
+          {resetLabel}
+        </button>
       </div>
-    </nav>
+
+      <div className="space-y-4">
+        {rows.map((row, index) => {
+          if (row.kind === "single") {
+            return (
+              <div key={`row-${index}-${row.id}`} className="group relative rounded-md border border-border bg-surface">
+                <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="font-medium text-foreground">{getModuleLabel(row.id)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, index - 1)}
+                      disabled={index === 0}
+                      className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
+                      aria-label="上移"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, index + 1)}
+                      disabled={index === rows.length - 1}
+                      className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
+                      aria-label="下移"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4">{renderModule(row.id)}</div>
+              </div>
+            );
+          }
+
+          // pair row
+          return (
+            <div key={`row-${index}-${row.left}-${row.right}`} className="group relative rounded-md border border-border bg-surface">
+              <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted">
+                <div className="flex items-center gap-2">
+                  <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="font-medium text-foreground">
+                    {getModuleLabel(row.left)} + {getModuleLabel(row.right)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => swapPair(index)}
+                    className="rounded border border-border px-1.5 py-0.5"
+                    aria-label="左右交换"
+                    title="左右交换"
+                  >
+                    ↔
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveRow(index, index - 1)}
+                    disabled={index === 0}
+                    className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
+                    aria-label="上移"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveRow(index, index + 1)}
+                    disabled={index === rows.length - 1}
+                    className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
+                    aria-label="下移"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+              <div className="grid gap-4 p-4 md:grid-cols-2">
+                <div className="min-w-0">{renderModule(row.left)}</div>
+                <div className="min-w-0">{renderModule(row.right)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

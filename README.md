@@ -30,7 +30,11 @@ Track your BTC portfolio in real time, calculate how close you are to Financial 
 - Accumulation chart (historical price + your holdings over time)
 
 **Experience**
-- Three tabs: “通用” (AHR999 + chart), “我的资产” (multi-wallet portfolio + FIRE), “投资计划” (DCA planner + scenarios + future projections)
+- Single scrollable page — modules laid out in rows (no tabs)
+- Two small modules (e.g. Dashboard + AHR999, Scenarios + Future) sit side-by-side in a row
+- Reorder rows with ↑/↓ (pair rows move together as a unit)
+- Inside a pair row, left/right swap via ↔ button (order saved to localStorage)
+- Default prioritizes personal data first
 - Currency toggle: USD ↔ CNY
 - BTC units: BTC / mBTC / bits / sat (switchable)
 - Data backup/restore + reset via settings (JSON export/import)
@@ -90,7 +94,7 @@ See `AGENTS.md` for full architecture notes, data-fetching details, and conventi
 ```
 app/
   layout.tsx          # metadata, dark html, ErrorBoundary, AdSense
-  page.tsx            # main SPA (“use client”), tab routing + state
+  page.tsx            # main SPA (“use client”), single-page reorderable modules, all state in usePersistentState
   globals.css
 components/
   ahr999-card.tsx

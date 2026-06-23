@@ -180,6 +180,10 @@ export const translations = {
       resetData: "重置为默认值",
       resetConfirm: "将所有输入恢复为初始默认值，确定继续？",
     },
+    modules: {
+      header: "全部模块（从上到下）",
+      reset: "重置顺序",
+    },
   },
   zhTW: {
     languageName: "繁體中文",
@@ -361,6 +365,10 @@ export const translations = {
       importSuccess: "資料匯入成功，頁面即將重新整理。",
       resetData: "重置為預設值",
       resetConfirm: "將所有輸入恢復為初始預設值，確定繼續？",
+    },
+    modules: {
+      header: "全部模組（從上到下）",
+      reset: "重置順序",
     },
   },
   en: {
@@ -546,16 +554,23 @@ export const translations = {
       invalidFile: "Invalid or corrupted backup file.",
       importSuccess: "Data imported successfully. The page will now reload.",
       resetData: "Reset to defaults",
-      resetConfirm: "Restore all inputs to the initial default values? This cannot be undone.",
+      resetConfirm: "Restore all inputs to their initial default values. Continue?",
+    },
+    modules: {
+      header: "All modules (top to bottom)",
+      reset: "Reset order",
     },
   },
-} as const;
-
-export type Language = keyof typeof translations;
-type WidenStrings<T> = {
-  readonly [K in keyof T]: T[K] extends string ? string : WidenStrings<T[K]>;
 };
 
+type WidenStrings<T> = T extends string
+  ? string
+  : T extends object
+  ? { [K in keyof T]: WidenStrings<T[K]> }
+  : T;
+
 export type Translation = WidenStrings<(typeof translations)["zhCN"]>;
+
+export type Language = keyof typeof translations;
 
 export const languageOptions: Language[] = ["zhCN", "zhTW", "en"];
