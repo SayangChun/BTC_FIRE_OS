@@ -18,11 +18,18 @@ type SettingsTranslation = {
 type DataSettingsProps = {
   t: SettingsTranslation;
   language: Language;
+  label?: string;
 };
 
-export function DataSettings({ t, language }: DataSettingsProps) {
+export function DataSettings({ t, language, label }: DataSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Always resolve a translated label so switching language updates the button text immediately
+  const resolvedLabel = label ?? (
+    language === "en" ? "Settings" :
+    language === "zhTW" ? "設置" : "设置"
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -200,17 +207,18 @@ export function DataSettings({ t, language }: DataSettingsProps) {
   }, [t]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative w-full">
       <button
         type="button"
-        className="flex h-8 w-8 items-center justify-center rounded text-muted transition-colors hover:bg-surface hover:text-foreground"
+        className="flex w-full items-center justify-center gap-1 rounded border border-border bg-surface py-px text-xs text-muted transition-colors hover:bg-surface hover:text-foreground"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Settings"
+        aria-label={resolvedLabel}
       >
-        <Settings className="h-4 w-4" />
+        <Settings className="h-3 w-3" />
+        <span>{resolvedLabel}</span>
       </button>
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-44 overflow-hidden rounded-md border border-border bg-surface shadow-soft">
+        <div className="absolute right-0 bottom-full z-50 mb-1 min-w-44 overflow-hidden rounded-md border border-border bg-surface shadow-soft">
           <button
             type="button"
             className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"

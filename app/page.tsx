@@ -96,6 +96,15 @@ function isModuleRow(v: unknown): v is ModuleRow {
   return false;
 }
 
+function getFlatModules(rows: ModuleRow[]): ModuleId[] {
+  const out: ModuleId[] = [];
+  for (const r of rows) {
+    if (r.kind === "single") out.push(r.id);
+    else { out.push(r.left, r.right); }
+  }
+  return out;
+}
+
 export default function Home() {
   const [language, setLanguage] = usePersistentState<Language>(
     "btc-fire-os:language",
@@ -374,148 +383,199 @@ export default function Home() {
     withdrawalRate,
   ]);
 
+  const flatModules = useMemo(() => getFlatModules(moduleRows), [moduleRows]);
+
+  const scrollToModule = useCallback((id: ModuleId) => {
+    const el = document.getElementById(`module-${id}`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const absoluteTop = window.pageYOffset + rect.top - 80;
+      window.scrollTo({ top: absoluteTop, behavior: "smooth" });
+    }
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   return (
     <>
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div className="max-w-3xl">
-            <div className="mb-4 flex items-center gap-3">
-              <LogoMark className="h-12 w-12 shrink-0" />
-              <div className="h-px min-w-12 flex-1 bg-gradient-to-r from-bitcoin/80 to-transparent" />
+    <main className="min-h-screen px-4 pt-0 pb-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[104rem] gap-6">
+        {/* Left sticky navigation — width fits the longest label exactly (additive, no main-content shrink) */}
+        <aside className="hidden w-fit shrink-0 lg:block">
+          <div className="sticky top-6 flex h-[calc(100vh-2.5rem)] flex-col">
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className="flex items-center gap-2 rounded px-1 py-1 text-left transition hover:opacity-80"
+              aria-label="返回顶部"
+            >
+              <LogoMark className="h-8 w-8 shrink-0" />
+              <span className="text-lg font-semibold tracking-[0.06em] text-foreground">BTC FIRE OS</span>
+            </button>
+
+            {/* Scrollable module list */}
+            <div className="mt-3 flex-1 overflow-auto">
+              <nav className="space-y-1 text-sm">
+                {flatModules.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => scrollToModule(id)}
+                    className="block w-full whitespace-nowrap rounded py-1 text-left text-muted transition hover:bg-surface hover:text-foreground"
+                  >
+                    {(() => {
+                      switch (id) {
+                        case "portfolio": return t.portfolio.title;
+                        case "dashboard": return t.dashboard.title;
+                        case "fire": return t.fire.title;
+                        case "dca": return t.dcaPlanner.title;
+                        case "ahr999": return t.ahr999.title;
+                        case "chart": return t.chart.title;
+                        case "scenario": return t.scenarios.title;
+                        case "future": return t.future.title;
+                        default: return id;
+                      }
+                    })()}
+                  </button>
+                ))}
+              </nav>
             </div>
-            <h1 className="text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
-              {t.app.title}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              {t.app.description}
-            </p>
-          </div>
 
-          <div className="flex flex-col gap-3 rounded-md border border-border bg-surface p-3">
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <div className="flex flex-wrap items-center gap-4">
-                <LanguageSelector
-                  activeLanguage={language}
-                  label={t.app.language}
-                  onLanguageChange={setLanguage}
-                />
-                <CurrencySelector
-                  activeCurrency={currency}
-                  label={t.app.currency}
-                  onCurrencyChange={setCurrency}
-                />
-                <div className="h-6 w-px bg-border" />
-                <DataSettings t={t.settings} language={language} />
-              </div>
+            {/* Bottom controls — width matches sidebar (longest title above), height only slightly taller than text */}
+            <div className="mt-auto space-y-1 border-t border-border pt-2 pb-0.5">
+              <LanguageSelector
+                activeLanguage={language}
+                label={t.app.language}
+                onLanguageChange={setLanguage}
+                compact
+              />
+              <CurrencySelector
+                activeCurrency={currency}
+                label={t.app.currency}
+                onCurrencyChange={setCurrency}
+                compact
+              />
+              <DataSettings t={t.settings} language={language} label={t.app.settings} />
             </div>
           </div>
-        </header>
+        </aside>
 
-        <FireCommandSummary
-          ahr999Label={
-            ahr999.status === "ready"
-              ? ahr999.value.toFixed(4)
-              : t.ahr999.loading
-          }
-          ahr999Suggestion={
-            ahr999.status === "ready"
-              ? getAhr999Suggestion(ahr999.recommendation, t.ahr999)
-              : undefined
-          }
-          btcGap={model.btcGap}
-          btcHoldings={btcHoldings}
-          btcPrice={btcPrice.price}
-          btcPriceStatus={formatPriceStatus(
-            btcPrice.status,
-            btcPrice.lastUpdated,
-            t.app,
-            language,
-          )}
-          btcUnit={btcUnit}
-          fireResult={model.fireResult}
-          t={t.summary}
-        />
+        {/* Main content area — keeps the EXACT same max-width as before (max-w-7xl), nav is extra */}
+        <div className="flex-1 flex justify-center">
+          <div className="w-full max-w-7xl space-y-4 pt-6">
+            <FireCommandSummary
+              ahr999Label={
+                ahr999.status === "ready"
+                  ? ahr999.value.toFixed(4)
+                  : t.ahr999.loading
+              }
+              ahr999Suggestion={
+                ahr999.status === "ready"
+                  ? getAhr999Suggestion(ahr999.recommendation, t.ahr999)
+                  : undefined
+              }
+              btcGap={model.btcGap}
+              btcHoldings={btcHoldings}
+              btcPrice={btcPrice.price}
+              btcPriceStatus={formatPriceStatus(
+                btcPrice.status,
+                btcPrice.lastUpdated,
+                t.app,
+                language,
+              )}
+              btcUnit={btcUnit}
+              fireResult={model.fireResult}
+              t={t.summary}
+            />
 
-        {/* Single-page module layout with rows.
+            {/* Single-page module layout with rows.
             - "pair" rows: two small modules side-by-side (left/right swap allowed).
             - Up/down moves the entire row (pair stays together).
             - Personal data prioritized by default. */}
-        <ModuleList
-          rows={moduleRows}
-          onRowsChange={setModuleRows}
-          headerLabel={t.modules?.header ?? "全部模块（从上到下）"}
-          resetLabel={t.modules?.reset ?? "重置顺序"}
-          renderModule={(id) => {
-            switch (id) {
-              case "portfolio":
-                return (
-                  <PortfolioInput
-                    wallets={wallets}
-                    btcUnit={btcUnit}
-                    t={t.portfolio}
-                    onWalletsChange={setWalletsClean}
-                    onBtcUnitChange={setBtcUnit}
-                  />
-                );
-              case "dashboard":
-                return <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />;
-              case "fire":
-                return (
-                  <FireCalculator
-                    key={currency}
-                    currency={currency}
-                    fireResult={{
-                      ...model.fireResult,
-                      monthlyExpenses,
-                    }}
-                    t={t.fire}
-                    onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
-                    onWithdrawalRateChange={setWithdrawalRate}
-                  />
-                );
-              case "dca":
-                return (
-                  <DcaFirePlannerCard
-                    currency={currency}
-                    frequency={ahr999Frequency}
-                    language={language}
-                    otherAssets={otherAssets}
-                    plan={dcaPlan}
-                    projection={model.dcaFireProjection}
-                    t={t.dcaPlanner}
-                    onOtherAssetsChange={setOtherAssets}
-                    onPlanChange={setDcaPlan}
-                  />
-                );
-              case "ahr999":
-                return (
-                  <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
-                );
-              case "chart":
-                return (
-                  <BtcPriceChart
-                    data={btcPriceHistory.data}
-                    loading={btcPriceHistory.loading}
-                    error={btcPriceHistory.error}
-                    language={language}
-                    t={t.chart}
-                  />
-                );
-              case "scenario":
-                return <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />;
-              case "future":
-                return (
-                  <FutureFireCard
-                    currentRequiredBtc={model.fireResult.requiredBtc}
-                    firstFireYear={model.firstFireYear}
-                    points={model.futureFireProjection}
-                    t={t.future}
-                  />
-                );
-              default:
-                return null;
-            }
+            <ModuleList
+              rows={moduleRows}
+              onRowsChange={setModuleRows}
+              headerLabel={t.modules?.header ?? "全部模块（从上到下）"}
+              resetLabel={t.modules?.reset ?? "重置顺序"}
+              renderModule={(id) => {
+            const content = (() => {
+              switch (id) {
+                case "portfolio":
+                  return (
+                    <PortfolioInput
+                      wallets={wallets}
+                      btcUnit={btcUnit}
+                      t={t.portfolio}
+                      onWalletsChange={setWalletsClean}
+                      onBtcUnitChange={setBtcUnit}
+                    />
+                  );
+                case "dashboard":
+                  return <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />;
+                case "fire":
+                  return (
+                    <FireCalculator
+                      key={currency}
+                      currency={currency}
+                      fireResult={{
+                        ...model.fireResult,
+                        monthlyExpenses,
+                      }}
+                      t={t.fire}
+                      onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
+                      onWithdrawalRateChange={setWithdrawalRate}
+                    />
+                  );
+                case "dca":
+                  return (
+                    <DcaFirePlannerCard
+                      currency={currency}
+                      frequency={ahr999Frequency}
+                      language={language}
+                      otherAssets={otherAssets}
+                      plan={dcaPlan}
+                      projection={model.dcaFireProjection}
+                      t={t.dcaPlanner}
+                      onOtherAssetsChange={setOtherAssets}
+                      onPlanChange={setDcaPlan}
+                    />
+                  );
+                case "ahr999":
+                  return (
+                    <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
+                  );
+                case "chart":
+                  return (
+                    <BtcPriceChart
+                      data={btcPriceHistory.data}
+                      loading={btcPriceHistory.loading}
+                      error={btcPriceHistory.error}
+                      language={language}
+                      t={t.chart}
+                    />
+                  );
+                case "scenario":
+                  return <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />;
+                case "future":
+                  return (
+                    <FutureFireCard
+                      currentRequiredBtc={model.fireResult.requiredBtc}
+                      firstFireYear={model.firstFireYear}
+                      points={model.futureFireProjection}
+                      t={t.future}
+                    />
+                  );
+                default:
+                  return null;
+              }
+            })();
+            return (
+              <div id={`module-${id}`}>
+                {content}
+              </div>
+            );
           }}
           getModuleLabel={(id) => {
             switch (id) {
@@ -538,11 +598,13 @@ export default function Home() {
               default:
                 return id;
             }
-          }}
-        />
+           }}
+         />
+          </div>
+        </div>
       </div>
     </main>
-      <footer className="border-t border-border py-6 text-center text-sm text-muted">
+    <footer className="border-t border-border py-6 text-center text-sm text-muted">
         <span className="italic">{t.quote}</span>
         <span className="mx-2">·</span>
         <span>Author: </span>
@@ -563,6 +625,7 @@ type LanguageSelectorProps = {
   activeLanguage: Language;
   label: string;
   onLanguageChange: (language: Language) => void;
+  compact?: boolean;
 };
 
 type FireCommandSummaryProps = {
@@ -711,19 +774,22 @@ function LanguageSelector({
   activeLanguage,
   label,
   onLanguageChange,
+  compact,
 }: LanguageSelectorProps) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs uppercase tracking-[0.08em] text-muted">
-        {label}
-      </span>
-      <div className="flex rounded-md border border-border bg-surface p-1">
+    <div className={cn("flex w-full items-center", compact && "gap-0")}>
+      {!compact && (
+        <span className="text-xs uppercase tracking-[0.08em] text-muted">
+          {label}
+        </span>
+      )}
+      <div className="flex w-full rounded-md border border-border bg-surface p-px">
         {languageOptions.map((option) => (
           <button
             key={option}
             type="button"
             className={cn(
-              "h-8 rounded px-3 text-sm font-semibold text-muted transition-colors hover:text-foreground",
+              "flex-1 rounded px-1.5 py-px text-xs font-semibold text-muted transition-colors hover:text-foreground",
               activeLanguage === option && "bg-bitcoin text-black hover:text-black",
             )}
             aria-pressed={activeLanguage === option}
@@ -741,27 +807,31 @@ type CurrencySelectorProps = {
   activeCurrency: Currency;
   label: string;
   onCurrencyChange: (currency: Currency) => void;
+  compact?: boolean;
 };
 
 function CurrencySelector({
   activeCurrency,
   label,
   onCurrencyChange,
-}: CurrencySelectorProps) {
+  compact,
+}: CurrencySelectorProps & { compact?: boolean }) {
   const currencies: Currency[] = ["USD", "CNY"];
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs uppercase tracking-[0.08em] text-muted">
-        {label}
-      </span>
-      <div className="flex rounded-md border border-border bg-surface p-1">
+    <div className={cn("flex w-full items-center", compact && "gap-0")}>
+      {!compact && (
+        <span className="text-xs uppercase tracking-[0.08em] text-muted">
+          {label}
+        </span>
+      )}
+      <div className="flex w-full rounded-md border border-border bg-surface p-px">
         {currencies.map((option) => (
           <button
             key={option}
             type="button"
             className={cn(
-              "h-8 rounded px-3 text-sm font-semibold text-muted transition-colors hover:text-foreground",
+              "flex-1 rounded px-1.5 py-px text-xs font-semibold text-muted transition-colors hover:text-foreground",
               activeCurrency === option && "bg-bitcoin text-black hover:text-black",
             )}
             aria-pressed={activeCurrency === option}

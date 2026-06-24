@@ -15,6 +15,13 @@ export const translations = {
       offline: "连接离线",
       lastUpdated: "更新时间",
       currency: "货币",
+      settings: "设置",
+    },
+    // also expose at root for convenience if needed elsewhere
+    settingsLabel: {
+      zhCN: "设置",
+      zhTW: "設置",
+      en: "Settings",
     },
     summary: {
       primaryLabel: "FIRE 总进度",
@@ -201,6 +208,7 @@ export const translations = {
       offline: "連線離線",
       lastUpdated: "更新時間",
       currency: "貨幣",
+      settings: "設置",
     },
     summary: {
       primaryLabel: "FIRE 總進度",
@@ -388,6 +396,7 @@ export const translations = {
       offline: "Offline",
       lastUpdated: "Updated",
       currency: "Currency",
+      settings: "Settings",
     },
     summary: {
       primaryLabel: "FIRE progress",
