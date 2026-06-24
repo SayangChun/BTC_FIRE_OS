@@ -61,7 +61,7 @@ import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 // Module identifiers for the single-page reorderable layout.
 // Personal/portfolio-related modules first by default.
-const MODULE_IDS = ["portfolio", "dashboard", "fire", "dca", "ahr999", "chart", "scenario", "future"] as const;
+const MODULE_IDS = ["dashboard", "ahr999", "portfolio", "fire", "dca", "scenario", "future", "chart"] as const;
 type ModuleId = (typeof MODULE_IDS)[number];
 
 type ModuleRow =
@@ -69,12 +69,9 @@ type ModuleRow =
   | { kind: "pair"; left: ModuleId; right: ModuleId };
 
 const DEFAULT_ROWS: readonly ModuleRow[] = [
-  // 最顶部并排：FIRE计算器（左） + 投资组合输入（右）
-  { kind: "pair", left: "fire", right: "portfolio" },
   { kind: "pair", left: "dashboard", right: "ahr999" },
-  // 动态定投 FIRE 计划（左） + 场景模拟（右）并排
+  { kind: "pair", left: "portfolio", right: "fire" },
   { kind: "pair", left: "dca", right: "scenario" },
-  // 未来 FIRE 预测 单独一行，放在上面并排模块的下方
   { kind: "single", id: "future" },
   { kind: "single", id: "chart" },
 ];
@@ -139,34 +136,22 @@ export default function Home() {
     monthlyCashflow: 0,
     },
   );
-  // Versioned key + auto-migration so existing users immediately see the new layout:
-  // Top row = FIRE计算器 (left) + 投资组合输入 (right)
+  // Versioned key + auto-migration so existing users immediately see the new layout.
   const [moduleRows, setModuleRows] = usePersistentState<ModuleRow[]>(
     "btc-fire-os:module-rows:v2",
     [...DEFAULT_ROWS],
     (v): v is ModuleRow[] => Array.isArray(v) && v.every(isModuleRow),
   );
 
-  // One-time migration: if saved rows don't start with (fire left + portfolio right), force the new default.
-  // Also nuke any data under the very old key.
+  // One-time migration: if saved rows don't match the new default order, force reset.
   useEffect(() => {
     try {
       localStorage.removeItem("btc-fire-os:module-rows");
       localStorage.removeItem("btc-fire-os:module-order");
     } catch {}
 
-    const first = moduleRows[0];
-    const isCorrectTop =
-      first &&
-      first.kind === "pair" &&
-      first.left === "fire" &&
-      first.right === "portfolio";
-
-    if (!isCorrectTop) {
-      // Only update if it actually differs (avoid render loops)
-      if (JSON.stringify(moduleRows) !== JSON.stringify(DEFAULT_ROWS)) {
-        setModuleRows([...DEFAULT_ROWS]);
-      }
+    if (JSON.stringify(moduleRows) !== JSON.stringify(DEFAULT_ROWS)) {
+      setModuleRows([...DEFAULT_ROWS]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
