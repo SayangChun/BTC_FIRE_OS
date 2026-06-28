@@ -16,7 +16,6 @@ import {
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type {
-  Ahr999Frequency,
   Currency,
   DcaFireProjection,
   DcaPlanInput,
@@ -27,7 +26,6 @@ type DcaFirePlannerCardProps = {
   currency?: Currency;
   plan: DcaPlanInput;
   otherAssets: OtherAssetsInput;
-  frequency: Ahr999Frequency & { status: "loading" | "ready" | "error" };
   projection: DcaFireProjection;
   language: "zhCN" | "zhTW" | "en";
   t: Translation["dcaPlanner"];
@@ -39,7 +37,6 @@ export function DcaFirePlannerCard({
   currency = "USD",
   plan,
   otherAssets,
-  frequency,
   projection,
   language,
   t,
@@ -57,26 +54,12 @@ export function DcaFirePlannerCard({
       <CardContent className="space-y-5">
         <p className="text-sm leading-6 text-muted">{t.description}</p>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="max-w-sm">
           <DcaInput
-            id="low-dca"
-            label={t.lowAmount}
-            value={plan.lowDailyAmount}
-            onChange={(value) => onPlanChange({ ...plan, lowDailyAmount: value })}
-          />
-          <DcaInput
-            id="normal-dca"
-            label={t.normalAmount}
-            value={plan.normalDailyAmount}
-            onChange={(value) =>
-              onPlanChange({ ...plan, normalDailyAmount: value })
-            }
-          />
-          <DcaInput
-            id="high-dca"
-            label={t.highAmount}
-            value={plan.highDailyAmount}
-            onChange={(value) => onPlanChange({ ...plan, highDailyAmount: value })}
+            id="daily-dca"
+            label={t.dailyAmount}
+            value={plan.dailyAmount}
+            onChange={(value) => onPlanChange({ dailyAmount: value })}
           />
         </div>
 
@@ -109,23 +92,6 @@ export function DcaFirePlannerCard({
             label={t.otherAssetsReturn}
             value={otherAssets.annualReturnRate}
             onChange={(rate) => onOtherAssetsChange({ ...otherAssets, annualReturnRate: rate })}
-          />
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <SmallStat
-            label={t.lowFrequency}
-            value={frequency.status === "ready" ? formatPercentage(frequency.low) : "--"}
-          />
-          <SmallStat
-            label={t.normalFrequency}
-            value={
-              frequency.status === "ready" ? formatPercentage(frequency.normal) : "--"
-            }
-          />
-          <SmallStat
-            label={t.highFrequency}
-            value={frequency.status === "ready" ? formatPercentage(frequency.high) : "--"}
           />
         </div>
 
@@ -173,38 +139,24 @@ export function DcaFirePlannerCard({
                  )}`
                : t.notReachedDetail}
            </p>
-            {!projection.projectedFireYears && (
-              <div className="mt-3">
-                <div className="mb-1.5 text-xs uppercase tracking-[0.08em] text-muted">快速尝试</div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-surface"
-                    onClick={() =>
-                      onPlanChange({
-                        ...plan,
-                        lowDailyAmount: Math.round((plan.lowDailyAmount + 50) * 100) / 100,
-                        normalDailyAmount: Math.round((plan.normalDailyAmount + 50) * 100) / 100,
-                      })
-                    }
-                  >
-                    低/常规定投各+50
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-surface"
-                    onClick={() =>
-                      onPlanChange({
-                        ...plan,
-                        highDailyAmount: Math.round((plan.highDailyAmount + 30) * 100) / 100,
-                      })
-                    }
-                  >
-                    高档+30
-                  </button>
-                </div>
-              </div>
-            )}
+             {!projection.projectedFireYears && (
+               <div className="mt-3">
+                 <div className="mb-1.5 text-xs uppercase tracking-[0.08em] text-muted">快速尝试</div>
+                 <div className="flex flex-wrap gap-2">
+                   <button
+                     type="button"
+                     className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-surface"
+                     onClick={() =>
+                       onPlanChange({
+                         dailyAmount: Math.round((plan.dailyAmount + 50) * 100) / 100,
+                       })
+                     }
+                   >
+                     定投 +50
+                   </button>
+                 </div>
+               </div>
+             )}
            {projection.projectedFireDate ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <SmallStat
@@ -233,13 +185,7 @@ export function DcaFirePlannerCard({
               />
             </div>
           ) : null}
-          <p className="mt-2 text-xs leading-5 text-muted">
-            {frequency.status === "ready"
-              ? `${t.sampleDays}: ${frequency.sampleDays}`
-              : frequency.status === "loading"
-                ? t.loading
-                : t.error}
-          </p>
+
         </div>
       </CardContent>
     </Card>

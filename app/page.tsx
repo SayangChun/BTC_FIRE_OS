@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { useBtcPrice, type BtcPriceStatus } from "@/hooks/use-btc-price";
 import { useAhr999 } from "@/hooks/use-ahr999";
 import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
+
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import type { Ahr999Recommendation, BtcUnit, BtcWallet, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
@@ -123,9 +124,7 @@ export default function Home() {
   const [dcaPlan, setDcaPlan] = usePersistentState<DcaPlanInput>(
     "btc-fire-os:dca-plan",
     {
-    lowDailyAmount: 100,
-    normalDailyAmount: 30,
-    highDailyAmount: 0,
+    dailyAmount: 30,
     },
   );
   const [otherAssets, setOtherAssets] = usePersistentState<OtherAssetsInput>(
@@ -270,15 +269,9 @@ export default function Home() {
       setWithdrawalRate(cleanedRate);
     }
     const cleanedPlan: DcaPlanInput = {
-      lowDailyAmount: toFixedPrecision(dcaPlan.lowDailyAmount, 2),
-      normalDailyAmount: toFixedPrecision(dcaPlan.normalDailyAmount, 2),
-      highDailyAmount: toFixedPrecision(dcaPlan.highDailyAmount, 2),
+      dailyAmount: toFixedPrecision(dcaPlan.dailyAmount, 2),
     };
-    if (
-      cleanedPlan.lowDailyAmount !== dcaPlan.lowDailyAmount ||
-      cleanedPlan.normalDailyAmount !== dcaPlan.normalDailyAmount ||
-      cleanedPlan.highDailyAmount !== dcaPlan.highDailyAmount
-    ) {
+    if (cleanedPlan.dailyAmount !== dcaPlan.dailyAmount) {
       setDcaPlan(cleanedPlan);
     }
     const incomingCashflow = typeof (otherAssets as any).monthlyCashflow === "number" ? (otherAssets as any).monthlyCashflow : 0;
@@ -324,14 +317,12 @@ export default function Home() {
       currentPrice: btcPrice.price,
       requiredPortfolioValue: fireResult.requiredPortfolioValue,
       dcaPlan,
-      ahr999Frequency,
     });
     const dcaFireProjection = projectDcaFire({
       btcHoldings,
       currentBtcPrice: btcPrice.price,
       requiredPortfolioValue: fireResult.requiredPortfolioValue,
       plan: dcaPlan,
-      frequency: ahr999Frequency,
       otherAssets: {
         ...otherAssets,
         currentAmount: toUsd(otherAssets.currentAmount),
@@ -358,7 +349,6 @@ export default function Home() {
     };
   }, [
     averageCostBasis,
-    ahr999Frequency,
     btcHoldings,
     btcPrice.price,
     dcaPlan,
@@ -513,20 +503,19 @@ export default function Home() {
                       onWithdrawalRateChange={setWithdrawalRate}
                     />
                   );
-                case "dca":
-                  return (
-                    <DcaFirePlannerCard
-                      currency={currency}
-                      frequency={ahr999Frequency}
-                      language={language}
-                      otherAssets={otherAssets}
-                      plan={dcaPlan}
-                      projection={model.dcaFireProjection}
-                      t={t.dcaPlanner}
-                      onOtherAssetsChange={setOtherAssets}
-                      onPlanChange={setDcaPlan}
-                    />
-                  );
+                 case "dca":
+                   return (
+                     <DcaFirePlannerCard
+                       currency={currency}
+                       language={language}
+                       otherAssets={otherAssets}
+                       plan={dcaPlan}
+                       projection={model.dcaFireProjection}
+                       t={t.dcaPlanner}
+                       onOtherAssetsChange={setOtherAssets}
+                       onPlanChange={setDcaPlan}
+                     />
+                   );
                 case "ahr999":
                   return (
                     <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />

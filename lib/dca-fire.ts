@@ -1,6 +1,5 @@
 import { projectBtcPrice } from "@/lib/price-projection";
 import type {
-  Ahr999Frequency,
   DcaFireProjection,
   DcaPlanInput,
   OtherAssetsInput,
@@ -9,15 +8,8 @@ import type {
 const DAYS_PER_MONTH = 365 / 12;
 const MAX_PROJECTION_MONTHS = 40 * 12;
 
-export function calculateExpectedDailyDca(
-  plan: DcaPlanInput,
-  frequency: Ahr999Frequency,
-) {
-  return (
-    plan.lowDailyAmount * frequency.low +
-    plan.normalDailyAmount * frequency.normal +
-    plan.highDailyAmount * frequency.high
-  );
+export function calculateExpectedDailyDca(plan: DcaPlanInput) {
+  return plan.dailyAmount;
 }
 
 export function projectDcaFire({
@@ -25,17 +17,15 @@ export function projectDcaFire({
   currentBtcPrice,
   requiredPortfolioValue,
   plan,
-  frequency,
   otherAssets,
 }: {
   btcHoldings: number;
   currentBtcPrice: number;
   requiredPortfolioValue: number;
   plan: DcaPlanInput;
-  frequency: Ahr999Frequency;
   otherAssets: OtherAssetsInput;
 }): DcaFireProjection {
-  const expectedDailyDca = calculateExpectedDailyDca(plan, frequency);
+  const expectedDailyDca = calculateExpectedDailyDca(plan);
   const expectedMonthlyDca = expectedDailyDca * DAYS_PER_MONTH;
   const currentBtcValue = btcHoldings * currentBtcPrice;
   const currentOtherAssetsValue = sanitizePositive(otherAssets.currentAmount);

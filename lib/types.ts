@@ -83,9 +83,7 @@ export type Ahr999Frequency = {
 };
 
 export type DcaPlanInput = {
-  lowDailyAmount: number;
-  normalDailyAmount: number;
-  highDailyAmount: number;
+  dailyAmount: number;
 };
 
 export type BtcUnit = "BTC" | "mBTC" | "bits" | "sat";

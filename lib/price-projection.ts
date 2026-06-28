@@ -1,5 +1,4 @@
 import type {
-  Ahr999Frequency,
   DcaPlanInput,
   PriceProjectionPoint,
   PriceProjectionScenario,
@@ -73,23 +72,15 @@ export function buildPriceProjection({
   requiredPortfolioValue,
   years = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   dcaPlan,
-  ahr999Frequency,
 }: {
   btcHoldings: number;
   currentPrice: number;
   requiredPortfolioValue: number;
   years?: number[];
   dcaPlan?: DcaPlanInput;
-  ahr999Frequency?: Ahr999Frequency;
 }): PriceProjectionPoint[] {
   const scenarios: PriceProjectionScenario[] = ["bear", "base", "bull"];
-  const expectedMonthlyDca =
-    dcaPlan && ahr999Frequency
-      ? (dcaPlan.lowDailyAmount * ahr999Frequency.low +
-          dcaPlan.normalDailyAmount * ahr999Frequency.normal +
-          dcaPlan.highDailyAmount * ahr999Frequency.high) *
-        (365 / 12)
-      : 0;
+  const expectedMonthlyDca = dcaPlan ? dcaPlan.dailyAmount * (365 / 12) : 0;
 
   return years.flatMap((year) =>
     scenarios.map((scenario) => {

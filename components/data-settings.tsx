@@ -189,7 +189,7 @@ export function DataSettings({ t, language, label }: DataSettingsProps) {
       wallets: [{ id: "default", name: "Main", btc: 1.2, costBasis: 42_000 }],
       monthlyExpenses: 4_500,
       withdrawalRate: 0.04,
-      dcaPlan: { lowDailyAmount: 100, normalDailyAmount: 30, highDailyAmount: 0 },
+      dcaPlan: { dailyAmount: 30 },
       otherAssets: { currentAmount: 0, annualReturnRate: 0.04, monthlyCashflow: 0 },
     };
 
@@ -302,7 +302,7 @@ function formatFieldValue(field: string, value: unknown): string {
       return `${((value as number) * 100).toFixed(2)}%`;
     case "dcaPlan": {
       const p = value as DcaPlanInput;
-      return `${formatNumber(p.lowDailyAmount)} / ${formatNumber(p.normalDailyAmount)} / ${formatNumber(p.highDailyAmount)}`;
+      return `${formatNumber(p.dailyAmount)}`;
     }
     case "otherAssets": {
       const a = value as OtherAssetsInput;
