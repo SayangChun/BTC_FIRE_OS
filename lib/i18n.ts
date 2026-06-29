@@ -138,6 +138,7 @@ export const translations = {
       description:
         "设置每日固定定投金额，估算长期定投力度和预计 FIRE 时间。",
       dailyAmount: "每日定投金额",
+      monthlyAmount: "每月定投金额",
       otherAssets: "当前其他资产",
       monthlyCashflow: "每月现金流",
       otherAssetsReturn: "其他资产预计年化收益率",
@@ -317,6 +318,7 @@ export const translations = {
       description:
         "設定每日固定定投金額，估算長期定投力度和預計 FIRE 時間。",
       dailyAmount: "每日定投金額",
+      monthlyAmount: "每月定投金額",
       otherAssets: "目前其他資產",
       monthlyCashflow: "每月現金流",
       otherAssetsReturn: "其他資產預估年化收益率",
@@ -500,6 +502,7 @@ export const translations = {
       description:
         "Set a fixed daily DCA amount. The app estimates long-run DCA intensity and FIRE timing.",
       dailyAmount: "Daily DCA amount",
+      monthlyAmount: "Monthly DCA amount",
       otherAssets: "Current other assets",
       monthlyCashflow: "Monthly cash flow",
       otherAssetsReturn: "Estimated annual return",

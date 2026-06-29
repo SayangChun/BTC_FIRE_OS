@@ -54,12 +54,22 @@ export function DcaFirePlannerCard({
       <CardContent className="space-y-5">
         <p className="text-sm leading-6 text-muted">{t.description}</p>
 
-        <div className="max-w-sm">
+        <div className="grid grid-cols-2 gap-4">
           <DcaInput
+            currency="USD"
             id="daily-dca"
             label={t.dailyAmount}
             value={plan.dailyAmount}
             onChange={(value) => onPlanChange({ dailyAmount: value })}
+          />
+          <DcaInput
+            currency="USD"
+            id="monthly-dca"
+            label={t.monthlyAmount}
+            value={toFixedPrecision(plan.dailyAmount * 30, 2)}
+            onChange={(value) =>
+              onPlanChange({ dailyAmount: toFixedPrecision(value / 30, 2) })
+            }
           />
         </div>
 
@@ -106,11 +116,11 @@ export function DcaFirePlannerCard({
           />
           <PlanMetric
             label={t.expectedDaily}
-            value={formatCurrency(projection.expectedDailyDca)}
+            value={formatCurrency(projection.expectedDailyDca, 2, "USD")}
           />
           <PlanMetric
             label={t.expectedMonthly}
-            value={formatCurrency(projection.expectedMonthlyDca)}
+            value={formatCurrency(projection.expectedMonthlyDca, 2, "USD")}
           />
           <PlanMetric
             label={t.fireGap}
