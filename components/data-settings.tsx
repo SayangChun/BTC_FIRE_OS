@@ -224,7 +224,7 @@ export function DataSettings({ t, language, label }: DataSettingsProps) {
             className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
             onClick={handleExport}
           >
-            <Download className="h-4 w-4 shrink-0 text-muted" />
+            <Upload className="h-4 w-4 shrink-0 text-muted" />
             {t.exportData}
           </button>
           <button
@@ -232,7 +232,7 @@ export function DataSettings({ t, language, label }: DataSettingsProps) {
             className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
             onClick={handleImport}
           >
-            <Upload className="h-4 w-4 shrink-0 text-muted" />
+            <Download className="h-4 w-4 shrink-0 text-muted" />
             {t.importData}
           </button>
           <button
