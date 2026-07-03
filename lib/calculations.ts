@@ -17,20 +17,40 @@ export const BTC_WEALTH_DISTRIBUTION: readonly BtcDistributionBucket[] = [
 
 export function calculateAddressTopPercent(btc: number): number {
   const ub = Number.isFinite(btc) ? Math.max(0, btc) : 0;
-  const buckets = BTC_WEALTH_DISTRIBUTION;
-  let top = 100;
-  for (const b of buckets) {
-    if (ub >= b.min) top = Math.min(top, b.topPct);
+  const b = BTC_WEALTH_DISTRIBUTION;
+
+  // First bucket [0, 0.00001) → 100%
+  if (ub < b[1].min) return 100;
+
+  // Find the highest bucket index where ub >= min
+  let idx = 0;
+  for (let i = 0; i < b.length; i++) {
+    if (ub >= b[i].min) idx = i;
   }
-  if (ub >= buckets[buckets.length - 1].min) {
-    top = Math.min(top, 0.0001);
+
+  // Power-law alpha between bucket i and i+1
+  const alpha = (i: number) =>
+    Math.log(b[i].topPct / b[i + 1].topPct) / Math.log(b[i + 1].min / b[i].min);
+
+  // Interpolated topPct at amount a within bucket i
+  const valAt = (i: number, a: number, al: number) =>
+    b[i].topPct * (a / b[i].min) ** (-al);
+
+  // Buckets 1-7: both current and next have topPct > 0, interpolate normally
+  if (idx <= 7) {
+    return valAt(idx, ub, alpha(idx));
   }
-  return top;
+
+  // Buckets 8+ or beyond: topPct rounds to 0 in data; extrapolate
+  // using the last known power-law exponent (alpha from bucket 7→8)
+  const a = alpha(7);
+  return Math.max(0, valAt(8, ub, a));
 }
 
 export function formatTopPercent(p: number): string {
-  if (!Number.isFinite(p) || p <= 0) return "<0.01%";
-  if (p < 1) return `<${p.toFixed(2)}%`;
+  if (!Number.isFinite(p) || p <= 0) return "<0.001%";
+  if (p < 0.001) return "<0.001%";
+  if (p < 1) return `${p.toFixed(3)}%`;
   return `${p.toFixed(2)}%`;
 }
 

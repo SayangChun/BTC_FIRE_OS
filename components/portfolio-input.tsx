@@ -198,29 +198,32 @@ function WalletRow({
 export function PortfolioInput({ wallets, btcUnit, t, onWalletsChange, onBtcUnitChange }: PortfolioInputProps) {
   const totalBtc = calculateTotalBtc(wallets);
   const weightedCost = calculateWeightedCostBasis(wallets);
+  const walletsRef = useRef(wallets);
+  walletsRef.current = wallets;
 
   const addWallet = () => {
+    const w = walletsRef.current;
     const next: BtcWallet = {
       id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-      name: wallets.length === 0 ? "Main" : `Wallet ${wallets.length + 1}`,
+      name: w.length === 0 ? "Main" : `Wallet ${w.length + 1}`,
       btc: 0,
       costBasis: 0,
     };
-    onWalletsChange([...wallets, next]);
+    onWalletsChange([...w, next]);
   };
 
   const updateWallet = (id: string, nextWallet: BtcWallet) => {
-    onWalletsChange(wallets.map((w) => (w.id === id ? nextWallet : w)));
+    onWalletsChange(walletsRef.current.map((w) => (w.id === id ? nextWallet : w)));
   };
 
   const removeWallet = (id: string) => {
-    if (wallets.length <= 1) {
-      // keep one but zero it out
-      const only = wallets[0];
+    const w = walletsRef.current;
+    if (w.length <= 1) {
+      const only = w[0];
       onWalletsChange([{ ...only, btc: 0, costBasis: 0 }]);
       return;
     }
-    onWalletsChange(wallets.filter((w) => w.id !== id));
+    onWalletsChange(w.filter((w) => w.id !== id));
   };
 
   return (
