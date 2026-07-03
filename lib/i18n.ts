@@ -57,6 +57,7 @@ export const translations = {
       removeWallet: "删除",
       noWallets: "尚未添加钱包",
       averageCostHelp: "每个钱包可独立记录成本价，总成本为基础持仓加权平均。成本基础统一以 USD 记录，便于长期跨周期比较。",
+      globalTop: "全球地址前百分比",
     },
     dashboard: {
       title: "仪表盘",
@@ -237,6 +238,7 @@ export const translations = {
       removeWallet: "刪除",
       noWallets: "尚未新增錢包",
       averageCostHelp: "每個錢包可獨立記錄成本價，總成本為各持倉加權平均。成本基礎統一以 USD 記錄，便於長期跨週期比較。",
+      globalTop: "全球地址前百分比",
     },
     dashboard: {
       title: "儀表板",
@@ -418,6 +420,7 @@ export const translations = {
       removeWallet: "Remove",
       noWallets: "No wallets yet",
       averageCostHelp: "Track cost basis per wallet (e.g. exchange, cold storage). Weighted average is calculated automatically. All costs stored in USD for cross-cycle consistency.",
+      globalTop: "Global address top %",
     },
     dashboard: {
       title: "Dashboard",

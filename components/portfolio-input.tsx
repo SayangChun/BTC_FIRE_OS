@@ -10,11 +10,13 @@ import {
   BTC_UNITS,
   BTC_UNIT_OPTIONS,
   btcToUnit,
+  calculateAddressTopPercent,
   calculateTotalBtc,
   calculateWeightedCostBasis,
   currencySymbol,
   formatHoldings,
   formatInputNumber,
+  formatTopPercent,
   toFixedPrecision,
   unitToBtc,
 } from "@/lib/calculations";
@@ -258,6 +260,9 @@ export function PortfolioInput({ wallets, btcUnit, t, onWalletsChange, onBtcUnit
               <div className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.totalHoldings}</div>
               <div className="font-semibold tabular-nums text-foreground">
                 {formatHoldings(totalBtc, btcUnit)} {BTC_UNITS[btcUnit].label}
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted tabular-nums">
+                {t.globalTop}: {formatTopPercent(calculateAddressTopPercent(totalBtc))}
               </div>
             </div>
             <div>

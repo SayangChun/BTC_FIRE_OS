@@ -14,6 +14,12 @@ import { PortfolioInput } from "@/components/portfolio-input";
 import { DataSettings } from "@/components/data-settings";
 import { ScenarioSimulator } from "@/components/scenario-simulator";
 import {
+  buildPriceProjection,
+  findFirstFireYear,
+} from "@/lib/price-projection";
+import { projectDcaFire } from "@/lib/dca-fire";
+import { BTC_PRICE_SCENARIOS } from "@/lib/mock-data";
+import {
   calculateCostBasis,
   calculateFireTarget,
   calculatePortfolioValue,
@@ -29,12 +35,6 @@ import {
   toFixedPrecision,
   toSatPrecision,
 } from "@/lib/calculations";
-import { projectDcaFire } from "@/lib/dca-fire";
-import {
-  buildPriceProjection,
-  findFirstFireYear,
-} from "@/lib/price-projection";
-import { BTC_PRICE_SCENARIOS } from "@/lib/mock-data";
 import {
   languageOptions,
   translations,
@@ -532,17 +532,17 @@ export default function Home() {
                   );
                 case "scenario":
                   return <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />;
-                case "future":
-                  return (
-                    <FutureFireCard
-                      currentRequiredBtc={model.fireResult.requiredBtc}
-                      firstFireYear={model.firstFireYear}
-                      points={model.futureFireProjection}
-                      t={t.future}
-                    />
-                  );
-                default:
-                  return null;
+                 case "future":
+                   return (
+                     <FutureFireCard
+                       currentRequiredBtc={model.fireResult.requiredBtc}
+                       firstFireYear={model.firstFireYear}
+                       points={model.futureFireProjection}
+                       t={t.future}
+                     />
+                   );
+                  default:
+                   return null;
               }
             })();
             return (

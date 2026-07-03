@@ -123,3 +123,21 @@ export type DcaFireProjection = {
   projectedOtherAssetsAtFire: number | null;
   projectedValueAtFire: number | null;
 };
+
+export type BtcRichAddress = {
+  rank: number;
+  address: string;
+  balance: number;
+  percent: number;
+};
+
+export type BtcDistributionBucket = {
+  range: string;
+  min: number;
+  max: number;
+  addresses: number;
+  btc: number;
+  addrPct: number;
+  btcPct: number;
+  topPct: number; // cumulative % of addresses with >= min BTC (top X%)
+};
