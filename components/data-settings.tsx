@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, RefreshCw, Settings, Upload } from "lucide-react";
+import { Download, LayoutList, RefreshCw, Settings, Upload } from "lucide-react";
 import type { Language } from "@/lib/i18n";
 import type { BtcWallet, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
 
@@ -13,15 +13,18 @@ type SettingsTranslation = {
   importSuccess: string;
   resetData: string;
   resetConfirm: string;
+  resetLayout: string;
+  resetLayoutConfirm: string;
 };
 
 type DataSettingsProps = {
   t: SettingsTranslation;
   language: Language;
   label?: string;
+  onResetLayout?: () => void;
 };
 
-export function DataSettings({ t, language, label }: DataSettingsProps) {
+export function DataSettings({ t, language, label, onResetLayout }: DataSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -206,6 +209,13 @@ export function DataSettings({ t, language, label }: DataSettingsProps) {
     window.location.reload();
   }, [t]);
 
+  const handleResetLayout = useCallback(() => {
+    if (!onResetLayout) return;
+    if (!confirm(t.resetLayoutConfirm)) return;
+    onResetLayout();
+    setIsOpen(false);
+  }, [onResetLayout, t.resetLayoutConfirm]);
+
   return (
     <div ref={containerRef} className="relative w-full">
       <button
@@ -235,6 +245,16 @@ export function DataSettings({ t, language, label }: DataSettingsProps) {
             <Download className="h-4 w-4 shrink-0 text-muted" />
             {t.importData}
           </button>
+          {onResetLayout ? (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
+              onClick={handleResetLayout}
+            >
+              <LayoutList className="h-4 w-4 shrink-0 text-muted" />
+              {t.resetLayout}
+            </button>
+          ) : null}
           <button
             type="button"
             className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"

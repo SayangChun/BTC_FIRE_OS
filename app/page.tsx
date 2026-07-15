@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { Activity, Bitcoin, Gauge, GripVertical, Target } from "lucide-react";
+import { Activity, Bitcoin, Gauge, GripVertical, Target, X } from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
@@ -140,6 +140,11 @@ export default function Home() {
     "btc-fire-os:module-rows:v2",
     [...DEFAULT_ROWS],
     (v): v is ModuleRow[] => Array.isArray(v) && v.every(isModuleRow),
+  );
+  const [layoutTipDismissed, setLayoutTipDismissed] = usePersistentState(
+    "btc-fire-os:layout-tip-dismissed",
+    false,
+    (v): v is boolean => typeof v === "boolean",
   );
 
   // One-time migration: if saved rows don't match the new default order, force reset.
@@ -432,7 +437,12 @@ export default function Home() {
                 onCurrencyChange={setCurrency}
                 compact
               />
-              <DataSettings t={t.settings} language={language} label={t.app.settings} />
+              <DataSettings
+                t={t.settings}
+                language={language}
+                label={t.app.settings}
+                onResetLayout={() => setModuleRows([...DEFAULT_ROWS])}
+              />
             </div>
           </div>
         </aside>
@@ -472,8 +482,9 @@ export default function Home() {
             <ModuleList
               rows={moduleRows}
               onRowsChange={setModuleRows}
-              headerLabel={t.modules?.header ?? "全部模块（从上到下）"}
-              resetLabel={t.modules?.reset ?? "重置顺序"}
+              labels={t.modules}
+              showTip={!layoutTipDismissed}
+              onDismissTip={() => setLayoutTipDismissed(true)}
               renderModule={(id) => {
             const content = (() => {
               switch (id) {
@@ -861,16 +872,27 @@ function formatPriceStatus(
 // Reorderable single-page modules (rows)
 // ------------------------------
 
+type ModuleListLabels = Translation["modules"];
+
 type ModuleListProps = {
   rows: ModuleRow[];
   onRowsChange: (next: ModuleRow[]) => void;
   renderModule: (id: ModuleId) => ReactNode;
   getModuleLabel: (id: ModuleId) => string;
-  headerLabel: string;
-  resetLabel: string;
+  labels: ModuleListLabels;
+  showTip: boolean;
+  onDismissTip: () => void;
 };
 
-function ModuleList({ rows, onRowsChange, renderModule, getModuleLabel, headerLabel, resetLabel }: ModuleListProps) {
+function ModuleList({
+  rows,
+  onRowsChange,
+  renderModule,
+  getModuleLabel,
+  labels,
+  showTip,
+  onDismissTip,
+}: ModuleListProps) {
   const moveRow = useCallback(
     (from: number, to: number) => {
       if (to < 0 || to >= rows.length || from === to) return;
@@ -893,103 +915,123 @@ function ModuleList({ rows, onRowsChange, renderModule, getModuleLabel, headerLa
     [rows, onRowsChange],
   );
 
-  const reset = useCallback(() => {
-    onRowsChange([...DEFAULT_ROWS]);
-  }, [onRowsChange]);
+  const rowLabel = (index: number) => labels.row.replace("{n}", String(index + 1));
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.08em] text-muted">
-        <span>{headerLabel}</span>
-        <button
-          type="button"
-          onClick={reset}
-          className="rounded border border-border px-2 py-1 text-[10px] hover:text-foreground"
-        >
-          {resetLabel}
-        </button>
-      </div>
+      {showTip ? (
+        <div className="rounded-md border border-bitcoin/30 bg-bitcoin/5 px-4 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded bg-bitcoin/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-bitcoin">
+                  <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+                  {labels.reorderHint}
+                </span>
+                <h2 className="text-sm font-medium uppercase tracking-[0.08em] text-foreground">
+                  {labels.header}
+                </h2>
+              </div>
+              <p className="max-w-3xl text-xs leading-relaxed text-muted">{labels.tip}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onDismissTip}
+              className="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-surface px-2 py-1.5 text-[11px] text-muted transition-colors hover:border-bitcoin/40 hover:text-foreground"
+              aria-label={labels.dismissTip}
+              title={labels.dismissTip}
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">{labels.dismissTip}</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         {rows.map((row, index) => {
-          if (row.kind === "single") {
-            return (
-              <div key={`row-${index}-${row.id}`} className="group/row relative rounded-md border border-border bg-surface">
-                <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="font-medium text-foreground">{getModuleLabel(row.id)}</span>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => moveRow(index, index - 1)}
-                      disabled={index === 0}
-                      className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
-                      aria-label="上移"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveRow(index, index + 1)}
-                      disabled={index === rows.length - 1}
-                      className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
-                      aria-label="下移"
-                    >
-                      ↓
-                    </button>
-                  </div>
-                </div>
-                <div className="p-4">{renderModule(row.id)}</div>
-              </div>
-            );
-          }
+          const controls = (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {row.kind === "pair" ? (
+                <button
+                  type="button"
+                  onClick={() => swapPair(index)}
+                  className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-[11px] text-muted transition-colors hover:border-bitcoin/50 hover:text-foreground"
+                  aria-label={labels.swapSides}
+                  title={labels.swapSides}
+                >
+                  <span aria-hidden="true">↔</span>
+                  <span className="hidden sm:inline">{labels.swapSides}</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => moveRow(index, index - 1)}
+                disabled={index === 0}
+                className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-[11px] text-muted transition-colors hover:border-bitcoin/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-border disabled:hover:text-muted"
+                aria-label={labels.moveUp}
+                title={labels.moveUp}
+              >
+                <span aria-hidden="true">↑</span>
+                <span className="hidden sm:inline">{labels.moveUp}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => moveRow(index, index + 1)}
+                disabled={index === rows.length - 1}
+                className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-[11px] text-muted transition-colors hover:border-bitcoin/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-border disabled:hover:text-muted"
+                aria-label={labels.moveDown}
+                title={labels.moveDown}
+              >
+                <span aria-hidden="true">↓</span>
+                <span className="hidden sm:inline">{labels.moveDown}</span>
+              </button>
+            </div>
+          );
 
-          // pair row
+          const title =
+            row.kind === "single"
+              ? getModuleLabel(row.id)
+              : `${getModuleLabel(row.left)} + ${getModuleLabel(row.right)}`;
+
           return (
-            <div key={`row-${index}-${row.left}-${row.right}`} className="group relative rounded-md border border-border bg-surface">
-              <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted">
-                <div className="flex items-center gap-2">
-                  <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="font-medium text-foreground">
-                    {getModuleLabel(row.left)} + {getModuleLabel(row.right)}
+            <div
+              key={
+                row.kind === "single"
+                  ? `row-${index}-${row.id}`
+                  : `row-${index}-${row.left}-${row.right}`
+              }
+              className="relative overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-bitcoin/35"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/40 px-3 py-2.5 text-xs">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded border border-dashed border-bitcoin/40 bg-bitcoin/10 text-bitcoin"
+                    title={labels.reorderHint}
+                    aria-hidden="true"
+                  >
+                    <GripVertical className="h-4 w-4" />
                   </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded bg-surface px-1.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-muted">
+                        {rowLabel(index)}
+                      </span>
+                      <span className="truncate font-medium text-foreground">{title}</span>
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-muted sm:hidden">{labels.reorderHint}</div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => swapPair(index)}
-                    className="rounded border border-border px-1.5 py-0.5"
-                    aria-label="左右交换"
-                    title="左右交换"
-                  >
-                    ↔
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveRow(index, index - 1)}
-                    disabled={index === 0}
-                    className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
-                    aria-label="上移"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveRow(index, index + 1)}
-                    disabled={index === rows.length - 1}
-                    className="rounded border border-border px-1.5 py-0.5 disabled:opacity-40"
-                    aria-label="下移"
-                  >
-                    ↓
-                  </button>
+                {controls}
+              </div>
+              {row.kind === "single" ? (
+                <div className="p-4">{renderModule(row.id)}</div>
+              ) : (
+                <div className="grid gap-4 p-4 md:grid-cols-2">
+                  <div className="min-w-0">{renderModule(row.left)}</div>
+                  <div className="min-w-0">{renderModule(row.right)}</div>
                 </div>
-              </div>
-              <div className="grid gap-4 p-4 md:grid-cols-2">
-                <div className="min-w-0">{renderModule(row.left)}</div>
-                <div className="min-w-0">{renderModule(row.right)}</div>
-              </div>
+              )}
             </div>
           );
         })}
