@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   calculateAhr999,
+  calculateAhr9993d,
+  calculateAhr9993dFittedPrice,
   calculateAhr999FittedPrice,
   getAhr999Recommendation,
 } from "@/lib/ahr999";
@@ -91,12 +93,16 @@ export function useAhr999(btcPrice: number): Ahr999Result & {
   return useMemo(() => {
     const average200DayPrice = state.average200DayPrice ?? 0;
     const value = calculateAhr999(btcPrice, average200DayPrice);
+    const value3d = calculateAhr9993d(btcPrice, average200DayPrice);
 
     return {
       value,
       average200DayPrice,
       fittedPrice: calculateAhr999FittedPrice(),
       recommendation: getAhr999Recommendation(value),
+      value3d,
+      fittedPrice3d: calculateAhr9993dFittedPrice(),
+      recommendation3d: getAhr999Recommendation(value3d),
       lastUpdated: state.lastUpdated,
       status: state.status,
     };

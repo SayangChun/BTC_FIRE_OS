@@ -44,7 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useBtcPrice, type BtcPriceStatus } from "@/hooks/use-btc-price";
 import { useAhr999 } from "@/hooks/use-ahr999";
-import { useAhr999Frequency } from "@/hooks/use-ahr999-frequency";
+
 
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
@@ -186,7 +186,6 @@ export default function Home() {
   const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
   const ahr999 = useAhr999(btcPrice.price);
-  const ahr999Frequency = useAhr999Frequency();
   const btcPriceHistory = useBtcPriceHistory();
   const t = translations[language];
 
@@ -529,7 +528,11 @@ export default function Home() {
                    );
                 case "ahr999":
                   return (
-                    <Ahr999Card ahr999={ahr999} frequency={ahr999Frequency} language={language} t={t.ahr999} />
+                    <Ahr999Card
+                      ahr999={ahr999}
+                      language={language}
+                      t={t.ahr999}
+                    />
                   );
                 case "chart":
                   return (

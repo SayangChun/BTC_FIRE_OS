@@ -32,7 +32,7 @@ export const translations = {
       btcGap: "BTC 缺口",
       noGap: "已覆盖目标",
       livePrice: "BTC 实时价格",
-      ahr999: "AHR999 信号",
+      ahr999: "ahr999 信号",
       fireTarget: "FIRE 目标",
     },
     nav: {
@@ -68,13 +68,16 @@ export const translations = {
     },
     ahr999: {
       title: "囤比特币指标",
-      subtitle: "AHR999",
+      subtitle: "ahr999 / ahr999-3D",
       loading: "正在计算指标",
       error: "暂时无法获取 200 日均价",
       value: "指标值",
       suggestion: "定投建议",
       average200Day: "200 日定投成本",
-      fittedPrice: "拟合价格",
+      fittedPrice: "ahr999 拟合价格",
+      fittedPrice3d: "ahr999-3D 拟合价格",
+      labelClassic: "ahr999",
+      label3d: "ahr999-3D",
       increase: "加大定投",
       increaseDetail: "指标处于深度低估区，适合更积极地积累 BTC。",
       normal: "常规定投",
@@ -83,7 +86,7 @@ export const translations = {
       stopDetail: "指标处于偏热区，适合暂停新增定投并控制风险。",
       updated: "更新时间",
       methodology:
-        "价格 / 200 日定投成本 × 价格 / 指数增长估值；0.45-1.2 为理论定投区间。",
+        "ahr999 / ahr999-3D = 价格 / 200 日定投成本 × 价格 / 拟合价格；两者共用 200 日均值，拟合价格系数不同。0.45-1.2 为理论定投区间。",
     },
     fire: {
       title: "FIRE 计算器",
@@ -221,7 +224,7 @@ export const translations = {
       btcGap: "BTC 缺口",
       noGap: "已覆蓋目標",
       livePrice: "BTC 即時價格",
-      ahr999: "AHR999 訊號",
+      ahr999: "ahr999 訊號",
       fireTarget: "FIRE 目標",
     },
     nav: {
@@ -257,13 +260,16 @@ export const translations = {
     },
     ahr999: {
       title: "囤比特幣指標",
-      subtitle: "AHR999",
+      subtitle: "ahr999 / ahr999-3D",
       loading: "正在計算指標",
       error: "暫時無法取得 200 日均價",
       value: "指標值",
       suggestion: "定投建議",
       average200Day: "200 日定投成本",
-      fittedPrice: "擬合價格",
+      fittedPrice: "ahr999 擬合價格",
+      fittedPrice3d: "ahr999-3D 擬合價格",
+      labelClassic: "ahr999",
+      label3d: "ahr999-3D",
       increase: "加大定投",
       increaseDetail: "指標處於深度低估區，適合更積極地累積 BTC。",
       normal: "常規定投",
@@ -272,7 +278,7 @@ export const translations = {
       stopDetail: "指標處於偏熱區，適合暫停新增定投並控制風險。",
       updated: "更新時間",
       methodology:
-        "價格 / 200 日定投成本 × 價格 / 指數增長估值；0.45-1.2 為理論定投區間。",
+        "ahr999 / ahr999-3D = 價格 / 200 日定投成本 × 價格 / 擬合價格；兩者共用 200 日均值，擬合價格係數不同。0.45-1.2 為理論定投區間。",
     },
     fire: {
       title: "FIRE 計算器",
@@ -411,7 +417,7 @@ export const translations = {
       btcGap: "BTC gap",
       noGap: "Target covered",
       livePrice: "Live BTC price",
-      ahr999: "AHR999 signal",
+      ahr999: "ahr999 signal",
       fireTarget: "FIRE target",
     },
     nav: {
@@ -447,13 +453,16 @@ export const translations = {
     },
     ahr999: {
       title: "Bitcoin Hoarding Indicator",
-      subtitle: "AHR999",
+      subtitle: "ahr999 / ahr999-3D",
       loading: "Calculating indicator",
       error: "Unable to fetch the 200-day average",
       value: "Indicator value",
       suggestion: "DCA suggestion",
       average200Day: "200-day DCA cost",
-      fittedPrice: "Fitted price",
+      fittedPrice: "ahr999 fitted price",
+      fittedPrice3d: "ahr999-3D fitted price",
+      labelClassic: "ahr999",
+      label3d: "ahr999-3D",
       increase: "Increase DCA",
       increaseDetail:
         "The indicator is in deep undervaluation territory. Accumulating more BTC may be attractive.",
@@ -465,7 +474,7 @@ export const translations = {
         "The indicator is running hot. Consider pausing new DCA buys and managing risk.",
       updated: "Updated",
       methodology:
-        "price / 200-day DCA cost × price / exponential growth valuation; 0.45-1.2 is the theoretical DCA zone.",
+        "ahr999 / ahr999-3D = price / 200-day DCA cost × price / fitted price; both share the 200-day mean with different fit coefficients. 0.45-1.2 is the theoretical DCA zone.",
     },
     fire: {
       title: "FIRE Calculator",

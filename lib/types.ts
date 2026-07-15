@@ -54,6 +54,10 @@ export type Ahr999Result = {
   average200DayPrice: number;
   fittedPrice: number;
   recommendation: Ahr999Recommendation;
+  /** AHR999-3D with recalibrated fitted-price coefficients. */
+  value3d: number;
+  fittedPrice3d: number;
+  recommendation3d: Ahr999Recommendation;
   lastUpdated: Date | null;
 };
 
