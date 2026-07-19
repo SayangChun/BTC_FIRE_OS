@@ -1004,7 +1004,7 @@ function ModuleList({
                   ? `row-${index}-${row.id}`
                   : `row-${index}-${row.left}-${row.right}`
               }
-              className="relative overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-bitcoin/35"
+              className="relative overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-t-bitcoin/35"
             >
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/40 px-3 py-2.5 text-xs">
                 <div className="flex min-w-0 items-center gap-2.5">
