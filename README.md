@@ -2,6 +2,9 @@
 
 **Bitcoin-native FIRE dashboard** for long-term holders.
 
+> **🌐 Languages**
+> [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+
 Track your BTC portfolio in real time, calculate how close you are to Financial Independence, Retire Early (FIRE), run price scenarios, follow the AHR999 Bitcoin accumulation indicator, and plan DCA buys by market zone — all in a fast, private, zero-backend web app.
 
 - Live data from Binance (price + AHR999)
