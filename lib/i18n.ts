@@ -32,7 +32,8 @@ export const translations = {
       btcGap: "BTC 缺口",
       noGap: "已覆盖目标",
       livePrice: "BTC 实时价格",
-      ahr999: "ahr999 信号",
+      ahr999: "ahr999",
+      ahr9993d: "ahr999-3D",
       fireTarget: "FIRE 目标",
     },
     nav: {
@@ -224,7 +225,8 @@ export const translations = {
       btcGap: "BTC 缺口",
       noGap: "已覆蓋目標",
       livePrice: "BTC 即時價格",
-      ahr999: "ahr999 訊號",
+      ahr999: "ahr999",
+      ahr9993d: "ahr999-3D",
       fireTarget: "FIRE 目標",
     },
     nav: {
@@ -417,7 +419,8 @@ export const translations = {
       btcGap: "BTC gap",
       noGap: "Target covered",
       livePrice: "Live BTC price",
-      ahr999: "ahr999 signal",
+      ahr999: "ahr999",
+      ahr9993d: "ahr999-3D",
       fireTarget: "FIRE target",
     },
     nav: {

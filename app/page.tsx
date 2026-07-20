@@ -460,6 +460,16 @@ export default function Home() {
                   ? getAhr999Suggestion(ahr999.recommendation, t.ahr999)
                   : undefined
               }
+              ahr9993dLabel={
+                ahr999.status === "ready"
+                  ? ahr999.value3d.toFixed(4)
+                  : t.ahr999.loading
+              }
+              ahr9993dSuggestion={
+                ahr999.status === "ready"
+                  ? getAhr999Suggestion(ahr999.recommendation3d, t.ahr999)
+                  : undefined
+              }
               btcGap={model.btcGap}
               btcHoldings={btcHoldings}
               btcPrice={btcPrice.price}
@@ -619,6 +629,8 @@ type LanguageSelectorProps = {
 type FireCommandSummaryProps = {
   ahr999Label: string;
   ahr999Suggestion?: string;
+  ahr9993dLabel: string;
+  ahr9993dSuggestion?: string;
   btcGap: number;
   btcHoldings: number;
   btcPrice: number;
@@ -631,6 +643,8 @@ type FireCommandSummaryProps = {
 function FireCommandSummary({
   ahr999Label,
   ahr999Suggestion,
+  ahr9993dLabel,
+  ahr9993dSuggestion,
   btcGap,
   btcHoldings,
   btcPrice,
@@ -693,12 +707,38 @@ function FireCommandSummary({
             tone="positive"
             value={formatCurrency(btcPrice, 2)}
           />
-          <SignalCard
-            icon={<Gauge className="h-4 w-4" aria-hidden="true" />}
-            label={t.ahr999}
-            subvalue={ahr999Suggestion}
-            value={ahr999Label}
-          />
+          <div className="rounded-md border border-border bg-background p-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0">
+                <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-muted">
+                  <span className="text-bitcoin">
+                    <Gauge className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  {t.ahr999}
+                </div>
+                <div className="break-words text-xl font-semibold text-foreground">
+                  {ahr999Label}
+                </div>
+                {ahr999Suggestion ? (
+                  <div className="mt-1 text-xs text-muted">{ahr999Suggestion}</div>
+                ) : null}
+              </div>
+              <div className="min-w-0 border-l border-border pl-3">
+                <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-muted">
+                  <span className="text-bitcoin">
+                    <Gauge className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  {t.ahr9993d}
+                </div>
+                <div className="break-words text-xl font-semibold text-foreground">
+                  {ahr9993dLabel}
+                </div>
+                {ahr9993dSuggestion ? (
+                  <div className="mt-1 text-xs text-muted">{ahr9993dSuggestion}</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
           <SignalCard
             icon={<Activity className="h-4 w-4" aria-hidden="true" />}
             label={t.fireTarget}
