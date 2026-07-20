@@ -607,7 +607,7 @@ export default function Home() {
         <span className="mx-2">·</span>
         <span>Author: </span>
         <a
-          href="https://x.com/SayangChun"
+          href="https://github.com/SayangChun"
           target="_blank"
           rel="noopener noreferrer"
           className="text-bitcoin transition-colors hover:text-foreground"
