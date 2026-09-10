@@ -16,6 +16,7 @@ type FutureFireCardProps = {
   points: PriceProjectionPoint[];
   currentRequiredBtc: number;
   firstFireYear: number | null;
+  isCurrentlyFireReady: boolean;
   t: Translation["future"];
 };
 
@@ -23,6 +24,7 @@ export function FutureFireCard({
   points,
   currentRequiredBtc,
   firstFireYear,
+  isCurrentlyFireReady,
   t,
 }: FutureFireCardProps) {
   const tenYearBase = points.find(
@@ -86,7 +88,7 @@ export function FutureFireCard({
                 {points
                   .filter((point) => point.year === year)
                   .map((point) => (
-                    <ProjectionScenario key={`${year}-${point.scenario}`} point={point} t={t} />
+                    <ProjectionScenario key={`${year}-${point.scenario}`} point={point} isCurrentlyFireReady={isCurrentlyFireReady} t={t} />
                   ))}
               </div>
             </div>
@@ -114,11 +116,15 @@ function SummaryStat({ label, value }: SummaryStatProps) {
   );
 }
 
-function getFireStatus(point: PriceProjectionPoint, t: Translation["future"]) {
-  if (point.fireProgress >= 1) {
+function getFireStatus(
+  point: PriceProjectionPoint,
+  isCurrentlyFireReady: boolean,
+  t: Translation["future"],
+) {
+  if (isCurrentlyFireReady) {
     return { label: t.fireAchieved, className: "text-sm font-medium text-positive" };
   }
-  if (point.fireProgress >= 0.5) {
+  if (point.isFireReady) {
     return { label: t.fireReady, className: "text-sm font-medium text-bitcoin" };
   }
   return { label: t.notYet, className: "text-sm font-medium text-muted" };
@@ -126,12 +132,14 @@ function getFireStatus(point: PriceProjectionPoint, t: Translation["future"]) {
 
 function ProjectionScenario({
   point,
+  isCurrentlyFireReady,
   t,
 }: {
   point: PriceProjectionPoint;
+  isCurrentlyFireReady: boolean;
   t: Translation["future"];
 }) {
-  const status = getFireStatus(point, t);
+  const status = getFireStatus(point, isCurrentlyFireReady, t);
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
