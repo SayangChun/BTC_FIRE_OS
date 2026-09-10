@@ -114,6 +114,16 @@ function SummaryStat({ label, value }: SummaryStatProps) {
   );
 }
 
+function getFireStatus(point: PriceProjectionPoint, t: Translation["future"]) {
+  if (point.fireProgress >= 1) {
+    return { label: t.fireAchieved, className: "text-sm font-medium text-positive" };
+  }
+  if (point.fireProgress >= 0.5) {
+    return { label: t.fireReady, className: "text-sm font-medium text-bitcoin" };
+  }
+  return { label: t.notYet, className: "text-sm font-medium text-muted" };
+}
+
 function ProjectionScenario({
   point,
   t,
@@ -121,21 +131,14 @@ function ProjectionScenario({
   point: PriceProjectionPoint;
   t: Translation["future"];
 }) {
+  const status = getFireStatus(point, t);
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold">
           {getScenarioLabel(point.scenario, t)}
         </span>
-        <span
-          className={
-            point.isFireReady
-              ? "text-sm font-medium text-positive"
-              : "text-sm font-medium text-muted"
-          }
-        >
-          {point.isFireReady ? t.fireReady : t.notYet}
-        </span>
+        <span className={status.className}>{status.label}</span>
       </div>
       <dl className="mt-3 space-y-2 text-sm">
         <Row label={t.projectedPrice} value={formatCurrency(point.projectedPrice)} />
