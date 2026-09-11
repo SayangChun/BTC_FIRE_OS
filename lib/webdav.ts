@@ -1,4 +1,3 @@
-import { createClient, type WebDAVClient, type FileStat } from "webdav";
 import type { ExportData } from "./types";
 
 const STORAGE_KEYS = {
@@ -46,84 +45,156 @@ export function clearWebDavConfig(): void {
   localStorage.removeItem(STORAGE_KEYS.path);
 }
 
-function getClient(): WebDAVClient {
-  const config = getWebDavConfig();
-  if (!config) {
-    throw new Error("WebDAV not configured");
+function buildAuthHeader(config: WebDavConfig): string {
+  const token = btoa(`${config.username}:${config.password}`);
+  return `Basic ${token}`;
+}
+
+function getRemoteUrl(config: WebDavConfig, filename?: string): string {
+  const base = config.url.endsWith("/") ? config.url : `${config.url}/`;
+  const dir = config.path.endsWith("/") ? config.path : `${config.path}/`;
+  return filename ? `${base}${dir}${filename}` : `${base}${dir}`;
+}
+
+async function webdavRequest(
+  config: WebDavConfig,
+  method: string,
+  url: string,
+  body?: string,
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    Authorization: buildAuthHeader(config),
+  };
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json; charset=utf-8";
   }
 
-  return createClient(config.url, {
-    username: config.username,
-    password: config.password,
+  return fetch(url, {
+    method,
+    headers,
+    body,
+    mode: "cors",
   });
 }
 
-function getRemotePath(filename: string): string {
-  const config = getWebDavConfig()!;
-  const path = config.path.endsWith("/") ? config.path : `${config.path}/`;
-  return `${path}${filename}`;
-}
-
 export async function ensureRemoteDirectory(): Promise<void> {
-  const client = getClient();
-  const config = getWebDavConfig()!;
-  const path = config.path.endsWith("/") ? config.path : `${config.path}/`;
+  const config = getWebDavConfig();
+  if (!config) throw new Error("WebDAV not configured");
 
+  const dirUrl = getRemoteUrl(config);
   try {
-    await client.getDirectoryContents(path);
-  } catch {
-    await client.createDirectory(path);
+    const res = await webdavRequest(config, "PROPFIND", dirUrl);
+    if (res.status === 404) {
+      const mkRes = await webdavRequest(config, "MKCOL", dirUrl);
+      if (!mkRes.ok && mkRes.status !== 405) {
+        throw new Error(`Failed to create directory: ${mkRes.status}`);
+      }
+    }
+  } catch (e) {
+    const mkRes = await webdavRequest(config, "MKCOL", dirUrl);
+    if (!mkRes.ok && mkRes.status !== 405) {
+      throw new Error(`Failed to create directory: ${mkRes.status}`);
+    }
   }
 }
 
 export async function uploadBackup(data: ExportData): Promise<string> {
-  const client = getClient();
+  const config = getWebDavConfig();
+  if (!config) throw new Error("WebDAV not configured");
+
   const filename = `backup-${new Date().toISOString().split("T")[0]}.json`;
-  const remotePath = getRemotePath(filename);
+  const fileUrl = getRemoteUrl(config, filename);
 
   await ensureRemoteDirectory();
-  await client.putFileContents(remotePath, JSON.stringify(data, null, 2), {
-    overwrite: true,
-  });
+
+  const res = await webdavRequest(config, "PUT", fileUrl, JSON.stringify(data, null, 2));
+  if (!res.ok) {
+    throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+  }
 
   return filename;
 }
 
-export async function listBackups(): Promise<FileStat[]> {
-  const client = getClient();
-  const config = getWebDavConfig()!;
-  const path = config.path.endsWith("/") ? config.path : `${config.path}/`;
+interface WebDavFileEntry {
+  basename: string;
+  filename: string;
+  lastmod: string;
+}
 
-  try {
-    const contents = await client.getDirectoryContents(path);
-    return contents
-      .filter((f) => f.basename.startsWith("backup-") && f.basename.endsWith(".json"))
-      .sort((a, b) => new Date(b.lastmod).getTime() - new Date(a.lastmod).getTime());
-  } catch {
-    return [];
+export async function listBackups(): Promise<WebDavFileEntry[]> {
+  const config = getWebDavConfig();
+  if (!config) throw new Error("WebDAV not configured");
+
+  const dirUrl = getRemoteUrl(config);
+  const res = await webdavRequest(config, "PROPFIND", dirUrl);
+  if (!res.ok) return [];
+
+  const text = await res.text();
+  const entries: WebDavFileEntry[] = [];
+
+  const hrefRegex = /<d:href>([^<]+)<\/d:href>/g;
+  const lastmodRegex = /<d:lastmod>([^<]+)<\/d:lastmod>/g;
+
+  const hrefs: string[] = [];
+  const lastmods: string[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = hrefRegex.exec(text)) !== null) {
+    hrefs.push(match[1]);
   }
+  while ((match = lastmodRegex.exec(text)) !== null) {
+    lastmods.push(match[1]);
+  }
+
+  for (let i = 0; i < hrefs.length; i++) {
+    const basename = decodeURIComponent(hrefs[i].split("/").pop() || "");
+    if (basename.startsWith("backup-") && basename.endsWith(".json")) {
+      entries.push({
+        basename,
+        filename: hrefs[i],
+        lastmod: lastmods[i] || "",
+      });
+    }
+  }
+
+  return entries.sort(
+    (a, b) => new Date(b.lastmod).getTime() - new Date(a.lastmod).getTime(),
+  );
 }
 
 export async function downloadBackup(filename?: string): Promise<ExportData> {
-  const client = getClient();
+  const config = getWebDavConfig();
+  if (!config) throw new Error("WebDAV not configured");
 
-  let targetFile: string;
+  let fileUrl: string;
   if (filename) {
-    targetFile = getRemotePath(filename);
+    fileUrl = getRemoteUrl(config, filename);
   } else {
     const backups = await listBackups();
     if (backups.length === 0) {
       throw new Error("No backups found");
     }
-    targetFile = backups[0].filename;
+    fileUrl = backups[0].filename.startsWith("http")
+      ? backups[0].filename
+      : getRemoteUrl(config, backups[0].basename);
   }
 
-  const content = await client.getFileContents(targetFile, { format: "text" });
-  return JSON.parse(content as string);
+  const res = await webdavRequest(config, "GET", fileUrl);
+  if (!res.ok) {
+    throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+  }
+
+  const content = await res.text();
+  return JSON.parse(content);
 }
 
 export async function deleteBackup(filename: string): Promise<void> {
-  const client = getClient();
-  const remotePath = getRemotePath(filename);
-  await client.deleteFile(remotePath);
+  const config = getWebDavConfig();
+  if (!config) throw new Error("WebDAV not configured");
+
+  const fileUrl = getRemoteUrl(config, filename);
+  const res = await webdavRequest(config, "DELETE", fileUrl);
+  if (!res.ok) {
+    throw new Error(`Delete failed: ${res.status} ${res.statusText}`);
+  }
 }
