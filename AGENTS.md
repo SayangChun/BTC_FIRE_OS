@@ -5,7 +5,7 @@
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Dev server at `http://localhost:3000` |
-| `npm run build` | Static export to `out/` |
+| `npm run build` | Production build (server + static) |
 | `npm run lint` | Only linter (`next lint`) |
 | `npm run start` | Serve built `out/` locally |
 
@@ -13,8 +13,8 @@ No test runner, formatter, or typecheck script exists. Do not add any.
 
 ## Architecture
 
-- **SPA only** — `app/page.tsx` is `"use client"`. All `hooks/` are client-only. No server components or API routes.
-- **Static export** — `next.config.ts`: `output: "export"`, `trailingSlash: true`. `basePath`/`assetPrefix` are set only in GitHub Actions for project sites.
+- **SPA only** — `app/page.tsx` is `"use client"`. All `hooks/` are client-only. No server components.
+- **API proxy** — `app/api/webdav/route.ts` proxies WebDAV requests server-side to bypass browser CORS.
 - **Path alias** — `@/*` → repo root (tsconfig.json).
 - **Three tabs** — `"general"` (AHR999 + chart), `"my"` (portfolio + FIRE), `"plan"` (DCA planner + scenarios + future). Toggled in `NavSidebar` (page.tsx:717).
 - **State** — All inputs use `usePersistentState` with `btc-fire-os:*` keys. One-way hydration: always render from caller `initialValue`, apply storage in effects only.
@@ -36,7 +36,7 @@ All use `cache: "no-store"`, abort controllers, and mount with fallbacks. No env
 
 ## Deployment
 
-`npm run build` → `out/`. No `.github/workflows` directory exists. Any CI / Pages deploy must be supplied externally.
+`npm run build` produces a server build with static pages. Deploy to Vercel or any Node.js host (API routes require a server).
 
 ## Conventions
 
