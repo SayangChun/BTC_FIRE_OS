@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ entries: [] });
         }
         const text = await res.text();
-        const hrefRegex = /<d:href>([^<]+)<\/d:href>/g;
-        const lastmodRegex = /<d:lastmod>([^<]+)<\/d:lastmod>/g;
+        const hrefRegex = /<[Dd]:href>([^<]+)<\/[Dd]:href>/g;
+        const lastmodRegex = /<[Dd]:lastmod>([^<]+)<\/[Dd]:lastmod>/g;
         const hrefs: string[] = [];
         const lastmods: string[] = [];
         let match: RegExpExecArray | null;
@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "No backups found" }, { status: 404 });
           }
           const text = await listRes.text();
-          const hrefRegex = /<d:href>([^<]+)<\/d:href>/g;
-          const lastmodRegex = /<d:lastmod>([^<]+)<\/d:lastmod>/g;
+          const hrefRegex = /<[Dd]:href>([^<]+)<\/[Dd]:href>/g;
+          const lastmodRegex = /<[Dd]:lastmod>([^<]+)<\/[Dd]:lastmod>/g;
           const hrefs: string[] = [];
           const lastmods: string[] = [];
           let match: RegExpExecArray | null;
