@@ -21,15 +21,69 @@ async function webdavFetch(
   creds: WebDavCredentials,
   method: string,
   url: string,
-  body?: string,
+  options?: { body?: string; extraHeaders?: Record<string, string> },
 ): Promise<Response> {
   const headers: Record<string, string> = {
     Authorization: buildAuthHeader(creds),
+    ...(options?.extraHeaders ?? {}),
   };
-  if (body !== undefined) {
-    headers["Content-Type"] = "application/json; charset=utf-8";
+  if (options?.body !== undefined) {
+    headers["Content-Type"] = options.body.startsWith("<?xml") || options.body.startsWith("<")
+      ? "application/xml; charset=utf-8"
+      : "application/json; charset=utf-8";
   }
-  return fetch(url, { method, headers, body });
+  return fetch(url, { method, headers, body: options?.body });
+}
+
+function parsePropfindXml(text: string): { basename: string; lastmod: string; href: string }[] {
+  const entries: { basename: string; lastmod: string; href: string }[] = [];
+
+  // Match any <...href>...</...href> or <...href .../> pattern
+  // Handles: <d:href>, <D:href>, <DAV:href>, <href>, or attribute href="..."
+  const responseBlocks = text.split(/<[Rr]esource>/i).slice(1);
+  if (responseBlocks.length > 0) {
+    // Multi-status response with <response> blocks
+    for (const block of responseBlocks) {
+      const hrefMatch = block.match(/<[^>]*href[^>]*>([^<]+)<\/[^>]*href>/i)
+        || block.match(/href="([^"]+)"/i);
+      const lastmodMatch = block.match(/<[^>]*lastmod[^>]*>([^<]+)<\/[^>]*lastmod>/i)
+        || block.match(/<[^>]*getlastmod[^>]*>([^<]+)<\/[^>]*getlastmod>/i);
+      if (hrefMatch) {
+        const basename = decodeURIComponent(hrefMatch[1].split("/").filter(Boolean).pop() || "");
+        entries.push({
+          basename,
+          href: hrefMatch[1],
+          lastmod: lastmodMatch?.[1] || "",
+        });
+      }
+    }
+  } else {
+    // Fallback: extract all href and lastmod values directly
+    const hrefRegex = /<[^>]*href[^>]*>([^<]+)<\/[^>]*href>/gi;
+    const lastmodRegex = /<[^>]*lastmod[^>]*>([^<]+)<\/[^>]*lastmod>/gi;
+    const hrefs: string[] = [];
+    const lastmods: string[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = hrefRegex.exec(text)) !== null) {
+      const val = match[1].trim();
+      if (val && !val.startsWith("http") || val.includes("/")) {
+        hrefs.push(val);
+      }
+    }
+    while ((match = lastmodRegex.exec(text)) !== null) {
+      lastmods.push(match[1].trim());
+    }
+    for (let i = 0; i < hrefs.length; i++) {
+      const basename = decodeURIComponent(hrefs[i].split("/").filter(Boolean).pop() || "");
+      entries.push({
+        basename,
+        href: hrefs[i],
+        lastmod: lastmods[i] || "",
+      });
+    }
+  }
+
+  return entries;
 }
 
 export async function POST(request: NextRequest) {
@@ -49,7 +103,9 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "ensureDir": {
         const dirUrl = getRemoteUrl(creds);
-        const propfindRes = await webdavFetch(creds, "PROPFIND", dirUrl);
+        const propfindRes = await webdavFetch(creds, "PROPFIND", dirUrl, {
+          extraHeaders: { Depth: "0" },
+        });
         if (propfindRes.status === 404) {
           const mkcolRes = await webdavFetch(creds, "MKCOL", dirUrl);
           if (!mkcolRes.ok && mkcolRes.status !== 405) {
@@ -61,23 +117,15 @@ export async function POST(request: NextRequest) {
 
       case "list": {
         const dirUrl = getRemoteUrl(creds);
-        const res = await webdavFetch(creds, "PROPFIND", dirUrl);
+        const res = await webdavFetch(creds, "PROPFIND", dirUrl, {
+          extraHeaders: { Depth: "1" },
+        });
         if (!res.ok) {
           return NextResponse.json({ entries: [] });
         }
         const text = await res.text();
-        const hrefRegex = /<[Dd]:href>([^<]+)<\/[Dd]:href>/g;
-        const lastmodRegex = /<[Dd]:lastmod>([^<]+)<\/[Dd]:lastmod>/g;
-        const hrefs: string[] = [];
-        const lastmods: string[] = [];
-        let match: RegExpExecArray | null;
-        while ((match = hrefRegex.exec(text)) !== null) hrefs.push(match[1]);
-        while ((match = lastmodRegex.exec(text)) !== null) lastmods.push(match[1]);
-        const entries = hrefs
-          .map((href, i) => ({
-            basename: decodeURIComponent(href.split("/").pop() || ""),
-            lastmod: lastmods[i] || "",
-          }))
+        const allEntries = parsePropfindXml(text);
+        const entries = allEntries
           .filter((e) => e.basename.startsWith("backup-") && e.basename.endsWith(".json"))
           .sort((a, b) => new Date(b.lastmod).getTime() - new Date(a.lastmod).getTime());
         return NextResponse.json({ entries });
@@ -85,9 +133,10 @@ export async function POST(request: NextRequest) {
 
       case "upload": {
         const uploadFilename = filename || `backup-${new Date().toISOString().split("T")[0]}.json`;
-        await webdavFetch(creds, "PROPFIND", getRemoteUrl(creds));
         const fileUrl = getRemoteUrl(creds, uploadFilename);
-        const res = await webdavFetch(creds, "PUT", fileUrl, JSON.stringify(data, null, 2));
+        const res = await webdavFetch(creds, "PUT", fileUrl, {
+          body: JSON.stringify(data, null, 2),
+        });
         if (!res.ok) {
           return NextResponse.json({ error: `PUT failed: ${res.status}` }, { status: 502 });
         }
@@ -99,24 +148,15 @@ export async function POST(request: NextRequest) {
         if (filename) {
           targetUrl = getRemoteUrl(creds, filename);
         } else {
-          const listRes = await webdavFetch(creds, "PROPFIND", getRemoteUrl(creds));
+          const listRes = await webdavFetch(creds, "PROPFIND", getRemoteUrl(creds), {
+            extraHeaders: { Depth: "1" },
+          });
           if (!listRes.ok) {
             return NextResponse.json({ error: "No backups found" }, { status: 404 });
           }
           const text = await listRes.text();
-          const hrefRegex = /<[Dd]:href>([^<]+)<\/[Dd]:href>/g;
-          const lastmodRegex = /<[Dd]:lastmod>([^<]+)<\/[Dd]:lastmod>/g;
-          const hrefs: string[] = [];
-          const lastmods: string[] = [];
-          let match: RegExpExecArray | null;
-          while ((match = hrefRegex.exec(text)) !== null) hrefs.push(match[1]);
-          while ((match = lastmodRegex.exec(text)) !== null) lastmods.push(match[1]);
-          const backups = hrefs
-            .map((href, i) => ({
-              basename: decodeURIComponent(href.split("/").pop() || ""),
-              href: hrefs[i],
-              lastmod: lastmods[i] || "",
-            }))
+          const allEntries = parsePropfindXml(text);
+          const backups = allEntries
             .filter((e) => e.basename.startsWith("backup-") && e.basename.endsWith(".json"))
             .sort((a, b) => new Date(b.lastmod).getTime() - new Date(a.lastmod).getTime());
           if (backups.length === 0) {
