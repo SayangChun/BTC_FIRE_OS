@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, LayoutList, RefreshCw, Settings, Upload } from "lucide-react";
+import { Cloud, Download, LayoutList, RefreshCw, Settings, Upload } from "lucide-react";
 import type { Language } from "@/lib/i18n";
 import type { BtcWallet, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import {
+  isWebDavConfigured,
+  saveWebDavConfig,
+  uploadBackup,
+  downloadBackup,
+} from "@/lib/webdav";
 
 type SettingsTranslation = {
   exportData: string;
@@ -15,6 +21,19 @@ type SettingsTranslation = {
   resetConfirm: string;
   resetLayout: string;
   resetLayoutConfirm: string;
+  webdavSettings: string;
+  webdavUpload: string;
+  webdavDownload: string;
+  webdavNotConfigured: string;
+  webdavUrlPrompt: string;
+  webdavUsernamePrompt: string;
+  webdavPasswordPrompt: string;
+  webdavPathPrompt: string;
+  webdavUploadSuccess: string;
+  webdavUploadError: string;
+  webdavDownloadConfirm: string;
+  webdavDownloadError: string;
+  webdavNoBackups: string;
 };
 
 type DataSettingsProps = {
@@ -27,6 +46,11 @@ type DataSettingsProps = {
 export function DataSettings({ t, language, label, onResetLayout }: DataSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [webdavConfigured, setWebdavConfigured] = useState(false);
+
+  useEffect(() => {
+    setWebdavConfigured(isWebDavConfigured());
+  }, []);
 
   // Always resolve a translated label so switching language updates the button text immediately
   const resolvedLabel = label ?? (
@@ -216,6 +240,161 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
     setIsOpen(false);
   }, [onResetLayout, t.resetLayoutConfirm]);
 
+  const handleConfigureWebDav = useCallback(() => {
+    const currentUrl = localStorage.getItem("btc-fire-os:webdav:url") || "https://";
+    const currentUsername = localStorage.getItem("btc-fire-os:webdav:username") || "";
+
+    const url = prompt(t.webdavUrlPrompt, currentUrl);
+    if (!url) return;
+
+    const username = prompt(t.webdavUsernamePrompt, currentUsername);
+    if (!username) return;
+
+    const password = prompt(t.webdavPasswordPrompt, "");
+    if (!password) return;
+
+    const path = prompt(t.webdavPathPrompt, "/btc-fire-os/");
+    if (!path) return;
+
+    saveWebDavConfig({ url, username, password, path });
+    setWebdavConfigured(true);
+    setIsOpen(false);
+  }, [t]);
+
+  const buildExportData = useCallback(() => {
+    const keyMap: Record<string, string> = {
+      language: "btc-fire-os:language",
+      currency: "btc-fire-os:currency",
+      btcUnit: "btc-fire-os:btc-unit",
+      wallets: "btc-fire-os:wallets",
+      btcHoldings: "btc-fire-os:btc-holdings",
+      averageCostBasis: "btc-fire-os:average-cost-basis",
+      monthlyExpenses: "btc-fire-os:monthly-expenses",
+      withdrawalRate: "btc-fire-os:withdrawal-rate",
+      dcaPlan: "btc-fire-os:dca-plan",
+      otherAssets: "btc-fire-os:other-assets",
+    };
+
+    const raw: Record<string, unknown> = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+    };
+
+    for (const [field, storageKey] of Object.entries(keyMap)) {
+      const stored = localStorage.getItem(storageKey);
+      if (stored !== null) {
+        try {
+          raw[field] = JSON.parse(stored);
+        } catch {
+          /* skip malformed */
+        }
+      }
+    }
+
+    return raw;
+  }, []);
+
+  const handleUploadToWebDav = useCallback(async () => {
+    if (!webdavConfigured) {
+      alert(t.webdavNotConfigured);
+      return;
+    }
+
+    try {
+      const data = buildExportData();
+      const filename = await uploadBackup(data as any);
+      alert(t.webdavUploadSuccess.replace("{file}", filename));
+    } catch (err) {
+      console.error("WebDAV upload error:", err);
+      alert(t.webdavUploadError);
+    }
+    setIsOpen(false);
+  }, [webdavConfigured, buildExportData, t]);
+
+  const handleDownloadFromWebDav = useCallback(async () => {
+    if (!webdavConfigured) {
+      alert(t.webdavNotConfigured);
+      return;
+    }
+
+    try {
+      const rawData = await downloadBackup();
+      const data = rawData as Record<string, unknown>;
+
+      if (!rawData.version || !rawData.exportedAt) {
+        alert(t.invalidFile);
+        return;
+      }
+
+      const labels = fieldLabels[language];
+      const fields = [
+        { key: "language", label: labels.language },
+        { key: "currency", label: labels.currency },
+        { key: "btcUnit", label: labels.btcUnit },
+        { key: "wallets", label: labels.wallets },
+        { key: "btcHoldings", label: labels.btcHoldings },
+        { key: "averageCostBasis", label: labels.averageCostBasis },
+        { key: "monthlyExpenses", label: labels.monthlyExpenses },
+        { key: "withdrawalRate", label: labels.withdrawalRate },
+        { key: "dcaPlan", label: labels.dcaPlan },
+        { key: "otherAssets", label: labels.otherAssets },
+      ];
+
+      const lines: string[] = [];
+      for (const { key, label } of fields) {
+        const val = data[key];
+        if (val === undefined) continue;
+        lines.push(`• ${label}: ${formatFieldValue(key, val)}`);
+      }
+
+      if (lines.length === 0) {
+        alert(t.invalidFile);
+        return;
+      }
+
+      if (!confirm(t.webdavDownloadConfirm.replace("{fields}", lines.join("\n")))) return;
+
+      const keyMap: Record<string, string> = {
+        language: "btc-fire-os:language",
+        currency: "btc-fire-os:currency",
+        btcUnit: "btc-fire-os:btc-unit",
+        wallets: "btc-fire-os:wallets",
+        btcHoldings: "btc-fire-os:btc-holdings",
+        averageCostBasis: "btc-fire-os:average-cost-basis",
+        monthlyExpenses: "btc-fire-os:monthly-expenses",
+        withdrawalRate: "btc-fire-os:withdrawal-rate",
+        dcaPlan: "btc-fire-os:dca-plan",
+        otherAssets: "btc-fire-os:other-assets",
+      };
+
+      for (const [field, storageKey] of Object.entries(keyMap)) {
+        if (data[field] !== undefined) {
+          localStorage.setItem(storageKey, JSON.stringify(data[field]));
+        }
+      }
+
+      const wallets = data.wallets;
+      const btcHoldings = data.btcHoldings;
+      const averageCostBasis = data.averageCostBasis;
+      if (!wallets && (btcHoldings !== undefined || averageCostBasis !== undefined)) {
+        const legacyWallet: BtcWallet = {
+          id: "imported-legacy",
+          name: "Main",
+          btc: typeof btcHoldings === "number" ? btcHoldings : 0,
+          costBasis: typeof averageCostBasis === "number" ? averageCostBasis : 0,
+        };
+        localStorage.setItem("btc-fire-os:wallets", JSON.stringify([legacyWallet]));
+      }
+
+      alert(t.importSuccess);
+      window.location.reload();
+    } catch (err) {
+      console.error("WebDAV download error:", err);
+      alert(t.webdavDownloadError);
+    }
+    setIsOpen(false);
+  }, [webdavConfigured, language, t]);
+
   return (
     <div ref={containerRef} className="relative w-full">
       <button
@@ -245,6 +424,33 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
             <Download className="h-4 w-4 shrink-0 text-muted" />
             {t.importData}
           </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
+            onClick={handleConfigureWebDav}
+          >
+            <Cloud className="h-4 w-4 shrink-0 text-muted" />
+            {t.webdavSettings}
+            {webdavConfigured && <span className="ml-auto text-xs text-muted">✓</span>}
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
+            onClick={handleUploadToWebDav}
+          >
+            <Upload className="h-4 w-4 shrink-0 text-muted" />
+            {t.webdavUpload}
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
+            onClick={handleDownloadFromWebDav}
+          >
+            <Download className="h-4 w-4 shrink-0 text-muted" />
+            {t.webdavDownload}
+          </button>
+          <div className="my-1 border-t border-border" />
           {onResetLayout ? (
             <button
               type="button"
