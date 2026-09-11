@@ -9,7 +9,7 @@
 
 - 來自幣安的即時資料（價格 + AHR999）
 - 100% 客戶端執行 · 資料不出瀏覽器
-- 靜態匯出 → 可在 GitHub Pages 上執行，無需伺服器
+- 伺服器端 API 代理支援 WebDAV 雲端備份（無 CORS 問題）
 - 三語支援：简体中文 / 繁體中文 / English
 
 ## 功能特色
@@ -44,6 +44,7 @@
 - 貨幣切換：USD ↔ CNY，影響所有法幣顯示
 - BTC 單位：BTC / mBTC / bits / sat（單位敏感輸入：sat 模式使用整數）
 - 資料備份/還原 + 重置（JSON 匯出/匯入）
+- WebDAV 雲端備份：設定伺服器位址，透過設定選單上傳/下載備份（經 API 代理，無 CORS 問題）
 - 所有資料持久化到 localStorage（無需登入，重新整理不遺失）
 - ErrorBoundary 包裹整個應用，優雅處理渲染異常
 - 僅深色模式，響應式設計，含 PWA manifest
@@ -59,34 +60,39 @@ npm run dev
 
 打開 http://localhost:3000
 
-### 生產構建（靜態）
+### 生產構建
 
 ```bash
-npm run build     # 輸出到 out/
-npm run start     # 本地預覽匯出的站點
+npm run build     # 生成包含靜態頁面的伺服器端構建
+npm run start     # 本地預覽構建好的應用
 npm run lint
 ```
 
 附帶了便捷腳本 `start-website.bat`（Windows）—— 按需安裝依賴、啟動開發伺服器並開啟瀏覽器。
 
-## 部署到 GitHub Pages（免費，無後端）
+## 部署到 Vercel（推薦）
 
 1. 推送到 GitHub 倉庫。
-2. 進入 **Settings → Pages**。
-3. 將 **Source** 設定為 "GitHub Actions"。
-4. 推送到 `main` 分支。使用 `npm run build` 構建（輸出到 `out/`）並部署靜態檔案。
+2. 在 [vercel.com/new](https://vercel.com/new) 匯入倉庫。
+3. Vercel 自動偵測 Next.js —— 零配置部署。
+4. API 路由（`/api/webdav`）作為 Serverless 函數運行，代理 WebDAV 請求以繞過瀏覽器 CORS 限制。
 
-站點將可訪問：
-- `https://<user>.github.io/`（使用者/組織站點）
-- `https://<user>.github.io/<repo>/`（專案站點）
+### 部署到 GitHub Pages（靜態，無 WebDAV）
 
-`next.config.ts` 在 `GITHUB_ACTIONS=true` 時自動設定 `basePath`/`assetPrefix`（僅專案站點）。倉庫中不包含工作流程檔案。
+仍可匯出靜態版本（不含 WebDAV 雲端備份）：
+
+```bash
+npm run build     # 輸出到 out/
+```
+
+`next.config.ts` 在 `GITHUB_ACTIONS=true` 時自動設定 `basePath`/`assetPrefix`。
 
 ## 隱私與資料
 
-- 無伺服器、無資料庫、無分析工具。
+- 無資料庫、無分析工具。
 - 所有資料僅儲存在你的瀏覽器 localStorage 中。
 - 僅取得公開市場資料（Binance + exchangerate-api.com）。
+- WebDAV 雲端備份為可選功能 —— 憑證儲存在 localStorage，透過 API 代理轉發（不記錄日誌）。
 - 載入 AdSense 腳本用於非侵入式廣告展示（不收集個人資料）。
 - 可安全用於敏感的持倉數字。
 
@@ -99,6 +105,7 @@ npm run lint
 - `lib/` 中的純函數（無 React）處理所有計算
 - 僅用戶端 hooks（`hooks/`），含優雅降級和 AbortController
 - 單向 `usePersistentState` 鉤子實現 localStorage 水合與遺留鍵遷移
+- 伺服器端 API 路由代理 WebDAV 請求（繞過瀏覽器 CORS）
 
 ## 專案結構
 
@@ -107,6 +114,8 @@ app/
   layout.tsx          # metadata、dark html、ErrorBoundary、AdSense
   page.tsx            # 主 SPA（"use client"），8 個可排序模組列、側邊欄、所有狀態透過 usePersistentState
   globals.css         # Tailwind 指令、徑向漸變、輸入框箭頭隱藏
+  api/webdav/
+    route.ts          # 伺服器端 WebDAV 代理（PROPFIND/PUT/GET/DELETE/MKCOL）
 components/
   ahr999-card.tsx            # ahr999 + ahr999-3D 雙指標
   accumulation-chart.tsx     # 價格走勢圖，含刷選滑塊 + 範圍選擇器
@@ -116,12 +125,12 @@ components/
   future-fire-card.tsx       # Power Law 預測 1/5/10 年
   portfolio-input.tsx        # 多錢包管理器、BTC 單位選擇器、位址排名
   scenario-simulator.tsx     # 熊市 / 基準 / 牛市情境
-  data-settings.tsx          # 匯出 / 匯入 / 重置下拉選單
+  data-settings.tsx          # 匯出 / 匯入 / 重置 / WebDAV 雲端備份下拉選單
   error-boundary.tsx         # 基於 class 的 React 錯誤邊界
   logo-mark.tsx              # SVG 圖示
   ui/                        # 極簡 Card、Button、Input、Label
 hooks/                  # use-btc-price (WS+REST)、use-ahr999、use-btc-price-history、use-exchange-rate、use-persistent-state
-lib/                    # 純計算（無 React）：calculations、ahr999、dca-fire、price-projection、i18n、types、mock-data
+lib/                    # 純計算（無 React）：calculations、ahr999、dca-fire、price-projection、i18n、types、mock-data、webdav
 public/                 # 圖示 + webmanifest（PWA）
 ```
 
@@ -130,8 +139,8 @@ public/                 # 圖示 + webmanifest（PWA）
 | 命令             | 描述                         |
 |------------------|------------------------------|
 | `npm run dev`    | 啟動開發伺服器（localhost:3000）  |
-| `npm run build`  | 靜態匯出到 `out/`             |
-| `npm run start`  | 本地預覽構建好的 `out/`       |
+| `npm run build`  | 生產構建（伺服器端 + 靜態頁面）   |
+| `npm run start`  | 本地預覽構建好的應用           |
 | `npm run lint`   | 執行 Next.js ESLint          |
 
 不包含測試、格式化或型別檢查腳本。請勿新增。

@@ -9,7 +9,7 @@
 
 - 来自币安的实时数据（价格 + AHR999）
 - 100% 客户端运行 · 数据不出浏览器
-- 静态导出 → 可在 GitHub Pages 上运行，无需服务器
+- 服务端 API 代理支持 WebDAV 云备份（无 CORS 问题）
 - 三语支持：简体中文 / 繁體中文 / English
 
 ## 功能特色
@@ -44,6 +44,7 @@
 - 货币切换：USD ↔ CNY，影响所有法币显示
 - BTC 单位：BTC / mBTC / bits / sat（单位敏感输入：sat 模式使用整数）
 - 数据备份/恢复 + 重置（JSON 导出/导入）
+- WebDAV 云备份：配置服务器地址，通过设置菜单上传/下载备份（经 API 代理，无 CORS 问题）
 - 所有数据持久化到 localStorage（无需登录，刷新不丢失）
 - ErrorBoundary 包裹整个应用，优雅处理渲染异常
 - 仅深色模式，响应式设计，含 PWA manifest
@@ -59,34 +60,39 @@ npm run dev
 
 打开 http://localhost:3000
 
-### 生产构建（静态）
+### 生产构建
 
 ```bash
-npm run build     # 输出到 out/
-npm run start     # 本地预览导出的站点
+npm run build     # 生成包含静态页面的服务端构建
+npm run start     # 本地预览构建好的应用
 npm run lint
 ```
 
 附带了便捷脚本 `start-website.bat`（Windows）—— 按需安装依赖、启动开发服务器并打开浏览器。
 
-## 部署到 GitHub Pages（免费，无后端）
+## 部署到 Vercel（推荐）
 
 1. 推送到 GitHub 仓库。
-2. 进入 **Settings → Pages**。
-3. 将 **Source** 设置为 "GitHub Actions"。
-4. 推送到 `main` 分支。使用 `npm run build` 构建（输出到 `out/`）并部署静态文件。
+2. 在 [vercel.com/new](https://vercel.com/new) 导入仓库。
+3. Vercel 自动检测 Next.js —— 零配置部署。
+4. API 路由（`/api/webdav`）作为 Serverless 函数运行，代理 WebDAV 请求以绕过浏览器 CORS 限制。
 
-站点将可访问：
-- `https://<user>.github.io/`（用户/组织站点）
-- `https://<user>.github.io/<repo>/`（项目站点）
+### 部署到 GitHub Pages（静态，无 WebDAV）
 
-`next.config.ts` 在 `GITHUB_ACTIONS=true` 时自动设置 `basePath`/`assetPrefix`（仅项目站点）。仓库中不包含工作流文件。
+仍可导出静态版本（不含 WebDAV 云备份）：
+
+```bash
+npm run build     # 输出到 out/
+```
+
+`next.config.ts` 在 `GITHUB_ACTIONS=true` 时自动设置 `basePath`/`assetPrefix`。
 
 ## 隐私与数据
 
-- 无服务器、无数据库、无分析工具。
+- 无数据库、无分析工具。
 - 所有数据仅存储在你的浏览器 localStorage 中。
 - 仅获取公开市场数据（Binance + exchangerate-api.com）。
+- WebDAV 云备份为可选功能 —— 凭据存储在 localStorage，通过 API 代理转发（不记录日志）。
 - 加载 AdSense 脚本用于非侵入式广告展示（不收集个人数据）。
 - 可安全用于敏感的持仓数字。
 
@@ -99,6 +105,7 @@ npm run lint
 - `lib/` 中的纯函数（无 React）处理所有计算
 - 仅客户端 hooks（`hooks/`），含优雅降级和 AbortController
 - 单向 `usePersistentState` 钩子实现 localStorage 水合与遗留键迁移
+- 服务端 API 路由代理 WebDAV 请求（绕过浏览器 CORS）
 
 ## 项目结构
 
@@ -107,6 +114,8 @@ app/
   layout.tsx          # metadata、dark html、ErrorBoundary、AdSense
   page.tsx            # 主 SPA（"use client"），8 个可排序模块行、侧边栏、所有状态通过 usePersistentState
   globals.css         # Tailwind 指令、径向渐变、输入框箭头隐藏
+  api/webdav/
+    route.ts          # 服务端 WebDAV 代理（PROPFIND/PUT/GET/DELETE/MKCOL）
 components/
   ahr999-card.tsx            # ahr999 + ahr999-3D 双指标
   accumulation-chart.tsx     # 价格走势图，含刷选滑块 + 范围选择器
@@ -116,12 +125,12 @@ components/
   future-fire-card.tsx       # Power Law 预测 1/5/10 年
   portfolio-input.tsx        # 多钱包管理器、BTC 单位选择器、地址排名
   scenario-simulator.tsx     # 熊市 / 基准 / 牛市场景
-  data-settings.tsx          # 导出 / 导入 / 重置下拉菜单
+  data-settings.tsx          # 导出 / 导入 / 重置 / WebDAV 云备份下拉菜单
   error-boundary.tsx         # 基于 class 的 React 错误边界
   logo-mark.tsx              # SVG 图标
   ui/                        # 极简 Card、Button、Input、Label
 hooks/                  # use-btc-price (WS+REST)、use-ahr999、use-btc-price-history、use-exchange-rate、use-persistent-state
-lib/                    # 纯计算（无 React）：calculations、ahr999、dca-fire、price-projection、i18n、types、mock-data
+lib/                    # 纯计算（无 React）：calculations、ahr999、dca-fire、price-projection、i18n、types、mock-data、webdav
 public/                 # 图标 + webmanifest（PWA）
 ```
 
@@ -130,8 +139,8 @@ public/                 # 图标 + webmanifest（PWA）
 | 命令             | 描述                        |
 |------------------|-----------------------------|
 | `npm run dev`    | 启动开发服务器（localhost:3000） |
-| `npm run build`  | 静态导出到 `out/`            |
-| `npm run start`  | 本地预览构建好的 `out/`      |
+| `npm run build`  | 生产构建（服务端 + 静态页面）   |
+| `npm run start`  | 本地预览构建好的应用          |
 | `npm run lint`   | 运行 Next.js ESLint         |
 
 不包含测试、格式化或类型检查脚本。请勿添加。

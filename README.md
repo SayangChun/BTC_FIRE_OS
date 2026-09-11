@@ -8,8 +8,8 @@
 Track your BTC portfolio in real time, calculate how close you are to Financial Independence, Retire Early (FIRE), run price scenarios, follow the AHR999 Bitcoin accumulation indicator (classic + 3D recalibrated), and plan DCA buys — all in a fast, private, zero-backend web app.
 
 - Live data from Binance (price + AHR999)
-- 100% client-side • nothing leaves your browser
-- Static export → works on GitHub Pages with no server
+- 100% client-side — nothing leaves your browser
+- Server-side API proxy for WebDAV cloud backup (no CORS issues)
 - Trilingual: 简体中文 / 繁體中文 / English
 
 ## Features
@@ -44,6 +44,7 @@ Track your BTC portfolio in real time, calculate how close you are to Financial 
 - Currency toggle: USD ↔ CNY across all fiat displays
 - BTC units: BTC / mBTC / bits / sat (unit-sensitive input: sat mode uses integers)
 - Data backup/restore + reset via settings dropdown (JSON export/import)
+- WebDAV cloud backup: configure server, upload/download backups via settings (proxied through API to bypass CORS)
 - Fully persisted to localStorage (no login, survives refresh)
 - ErrorBoundary wraps the entire app to catch rendering failures gracefully
 - Dark mode only, responsive, PWA manifest included
@@ -59,34 +60,39 @@ npm run dev
 
 Open http://localhost:3000
 
-### Production build (static)
+### Production build
 
 ```bash
-npm run build     # outputs to out/
-npm run start     # serve the exported site locally
+npm run build     # server build with static pages
+npm run start     # serve the built app locally
 npm run lint
 ```
 
 A convenience script `start-website.bat` is included (Windows) — installs deps if needed, runs dev server, and opens the browser.
 
-## Deploy to GitHub Pages (free, no backend)
+## Deploy to Vercel (recommended)
 
 1. Push to a GitHub repo.
-2. Go to **Settings → Pages**.
-3. Set **Source** to "GitHub Actions".
-4. Push to `main`. Build with `npm run build` (outputs to `out/`) and deploy the static files.
+2. Import the repo at [vercel.com/new](https://vercel.com/new).
+3. Vercel auto-detects Next.js — deploy with zero config.
+4. The API route (`/api/webdav`) runs as a serverless function, proxying WebDAV requests to bypass browser CORS restrictions.
 
-The site will be available at:
-- `https://<user>.github.io/` (user/org site)
-- `https://<user>.github.io/<repo>/` (project site)
+### Deploy to GitHub Pages (static, no WebDAV)
 
-`next.config.ts` sets `basePath`/`assetPrefix` automatically when `GITHUB_ACTIONS=true` (project sites only). No workflow file is included in the repo.
+You can still export a static version (without WebDAV cloud backup):
+
+```bash
+npm run build     # outputs to out/
+```
+
+`next.config.ts` sets `basePath`/`assetPrefix` automatically when `GITHUB_ACTIONS=true`.
 
 ## Privacy & Data
 
-- No server, no database, no analytics.
+- No database, no analytics.
 - All state lives in your browser's localStorage.
 - Only public market data is fetched (Binance + exchangerate-api.com).
+- WebDAV cloud backup is opt-in — credentials stored in localStorage, proxied through API (never logged).
 - AdSense script is loaded for non-intrusive ad display (no personal data collected).
 - Safe to use with sensitive portfolio numbers.
 
@@ -99,6 +105,7 @@ The site will be available at:
 - Pure functions in `lib/` (no React) for all calculations
 - Client-only data hooks (`hooks/`) with graceful fallbacks and abort controllers
 - One-way `usePersistentState` hook for localStorage hydration with legacy key migration
+- Server-side API route for WebDAV proxy (bypasses browser CORS)
 
 ## Project Structure
 
@@ -107,6 +114,8 @@ app/
   layout.tsx          # metadata, dark html, ErrorBoundary, AdSense
   page.tsx            # main SPA ("use client"), 8 reorderable module rows, sidebar, all state via usePersistentState
   globals.css         # Tailwind directives, radial gradient, input spinner hide
+  api/webdav/
+    route.ts          # server-side WebDAV proxy (PROPFIND/PUT/GET/DELETE/MKCOL)
 components/
   ahr999-card.tsx            # ahr999 + ahr999-3D dual indicator
   accumulation-chart.tsx     # price history chart with brush + range selector
@@ -116,12 +125,12 @@ components/
   future-fire-card.tsx       # Power Law projections 1/5/10y
   portfolio-input.tsx        # multi-wallet manager, BTC unit selector, address top %
   scenario-simulator.tsx     # bear / base / bull scenarios
-  data-settings.tsx          # export / import / reset dropdown
+  data-settings.tsx          # export / import / reset / WebDAV cloud backup dropdown
   error-boundary.tsx         # class-based React error boundary
   logo-mark.tsx              # SVG logo
   ui/                        # minimal Card, Button, Input, Label
 hooks/                  # use-btc-price (WS+REST), use-ahr999, use-btc-price-history, use-exchange-rate, use-persistent-state
-lib/                    # pure calculations (no React): calculations, ahr999, dca-fire, price-projection, i18n, types, mock-data
+lib/                    # pure calculations (no React): calculations, ahr999, dca-fire, price-projection, i18n, types, mock-data, webdav
 public/                 # icons + webmanifest (PWA)
 ```
 
@@ -130,8 +139,8 @@ public/                 # icons + webmanifest (PWA)
 | Command       | Description                     |
 |---------------|---------------------------------|
 | `npm run dev` | Start dev server (localhost:3000) |
-| `npm run build` | Static export to `out/`       |
-| `npm run start` | Serve the built `out/` locally |
+| `npm run build` | Production build (server + static) |
+| `npm run start` | Serve the built app locally |
 | `npm run lint`  | Run Next.js ESLint              |
 
 No tests, formatter, or typecheck scripts exist. Do not add any.
