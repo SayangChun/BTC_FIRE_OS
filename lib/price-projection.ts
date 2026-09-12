@@ -90,13 +90,14 @@ export function buildPriceProjection({
           ? projectAccumulatedBtc(btcHoldings, currentPrice, expectedMonthlyDca, year, scenario)
           : btcHoldings;
       const projectedPortfolioValue = projectedBtc * projectedPrice;
+      const currentHoldingsValue = btcHoldings * projectedPrice;
       const inflationFactor = (1 + ANNUAL_INFLATION_RATE) ** year;
       const effectiveRequired = requiredPortfolioValue * inflationFactor;
       const requiredBtcForFire =
         projectedPrice > 0 ? effectiveRequired / projectedPrice : 0;
       const fireProgress =
         effectiveRequired > 0
-          ? projectedPortfolioValue / effectiveRequired
+          ? currentHoldingsValue / effectiveRequired
           : 0;
 
       return {
@@ -107,7 +108,7 @@ export function buildPriceProjection({
         projectedPortfolioValue,
         requiredBtcForFire,
         fireProgress,
-        isFireReady: fireProgress >= 1,
+        isFireReady: effectiveRequired > 0 && projectedPortfolioValue >= effectiveRequired,
       };
     }),
   );

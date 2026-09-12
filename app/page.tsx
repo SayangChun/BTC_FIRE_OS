@@ -560,6 +560,7 @@ export default function Home() {
                    return (
                      <FutureFireCard
                        currentRequiredBtc={model.fireResult.requiredBtc}
+                       btcHoldings={btcHoldings}
                        firstFireYear={model.firstFireYear}
                        isCurrentlyFireReady={model.fireResult.isFireReady}
                        points={model.futureFireProjection}

@@ -15,6 +15,7 @@ import type {
 type FutureFireCardProps = {
   points: PriceProjectionPoint[];
   currentRequiredBtc: number;
+  btcHoldings: number;
   firstFireYear: number | null;
   isCurrentlyFireReady: boolean;
   t: Translation["future"];
@@ -23,6 +24,7 @@ type FutureFireCardProps = {
 export function FutureFireCard({
   points,
   currentRequiredBtc,
+  btcHoldings,
   firstFireYear,
   isCurrentlyFireReady,
   t,
@@ -88,7 +90,7 @@ export function FutureFireCard({
                 {points
                   .filter((point) => point.year === year)
                   .map((point) => (
-                    <ProjectionScenario key={`${year}-${point.scenario}`} point={point} isCurrentlyFireReady={isCurrentlyFireReady} t={t} />
+                    <ProjectionScenario key={`${year}-${point.scenario}`} point={point} btcHoldings={btcHoldings} isCurrentlyFireReady={isCurrentlyFireReady} t={t} />
                   ))}
               </div>
             </div>
@@ -118,10 +120,11 @@ function SummaryStat({ label, value }: SummaryStatProps) {
 
 function getFireStatus(
   point: PriceProjectionPoint,
+  btcHoldings: number,
   isCurrentlyFireReady: boolean,
   t: Translation["future"],
 ) {
-  if (isCurrentlyFireReady) {
+  if (isCurrentlyFireReady || btcHoldings >= point.requiredBtcForFire) {
     return { label: t.fireAchieved, className: "text-sm font-medium text-positive" };
   }
   if (point.isFireReady) {
@@ -132,14 +135,16 @@ function getFireStatus(
 
 function ProjectionScenario({
   point,
+  btcHoldings,
   isCurrentlyFireReady,
   t,
 }: {
   point: PriceProjectionPoint;
+  btcHoldings: number;
   isCurrentlyFireReady: boolean;
   t: Translation["future"];
 }) {
-  const status = getFireStatus(point, isCurrentlyFireReady, t);
+  const status = getFireStatus(point, btcHoldings, isCurrentlyFireReady, t);
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
