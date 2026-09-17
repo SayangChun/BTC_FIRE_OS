@@ -61,6 +61,7 @@ import {
   type Translation,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { APP_VERSION, CHANGELOG_URL, RELEASES_URL, releaseUrl } from "@/lib/app-info";
 import { MARKET_SOURCE_LABELS } from "@/lib/market-data";
 import { useBtcPrice, type BtcPriceState } from "@/hooks/use-btc-price";
 import { useAhr999 } from "@/hooks/use-ahr999";
@@ -721,6 +722,39 @@ export default function Home() {
         >
           @SayangChun
         </a>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs">
+          <a
+            href={releaseUrl(APP_VERSION)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`${t.app.versionLabel} v${APP_VERSION}`}
+            className="rounded border border-border bg-surface px-1.5 py-0.5 font-semibold tabular-nums text-foreground transition-colors hover:border-bitcoin/40 hover:text-bitcoin"
+          >
+            v{APP_VERSION}
+          </a>
+          <span className="text-border" aria-hidden="true">
+            ·
+          </span>
+          <a
+            href={CHANGELOG_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
+            {t.app.changelog}
+          </a>
+          <span className="text-border" aria-hidden="true">
+            ·
+          </span>
+          <a
+            href={RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
+            {t.app.releases}
+          </a>
+        </div>
       </footer>
     </>
   );

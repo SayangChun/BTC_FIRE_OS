@@ -20,6 +20,9 @@ export const translations = {
       lastUpdated: "更新时间",
       currency: "货币",
       settings: "设置",
+      versionLabel: "当前版本",
+      changelog: "更新日志",
+      releases: "版本发布",
     },
     // also expose at root for convenience if needed elsewhere
     settingsLabel: {
@@ -263,6 +266,9 @@ export const translations = {
       lastUpdated: "更新時間",
       currency: "貨幣",
       settings: "設置",
+      versionLabel: "目前版本",
+      changelog: "更新日誌",
+      releases: "版本發佈",
     },
     summary: {
       primaryLabel: "FIRE 總進度",
@@ -501,6 +507,9 @@ export const translations = {
       lastUpdated: "Updated",
       currency: "Currency",
       settings: "Settings",
+      versionLabel: "Current version",
+      changelog: "Changelog",
+      releases: "Releases",
     },
     summary: {
       primaryLabel: "FIRE progress",

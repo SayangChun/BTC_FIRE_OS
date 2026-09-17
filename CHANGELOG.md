@@ -10,6 +10,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Version badge in the site footer (`vX.Y.Z`, linking to the matching release) plus Changelog and
+  Releases links. The value is injected from `package.json` via `NEXT_PUBLIC_APP_VERSION`, so the
+  footer, the git tag and this file can never drift apart.
+
+### Changed
+
+- Documentation sync: all three READMEs now describe multi-source market data, demo data, editable
+  scenario prices, the optional inflation rate, the chart cost line and the loading skeletons;
+  `AGENTS.md` reflects the current architecture (single scrollable page, shared market-data layer,
+  version injection, inflation rules).
+
+### 新增
+
+- 网站页脚新增版本标识（`vX.Y.Z`，可点击跳转到对应发布页）以及「更新日志 / 版本发布」链接。
+  版本号由 `package.json` 经 `NEXT_PUBLIC_APP_VERSION` 注入，因此页脚、git 标签与本文件始终一致。
+
+### 变更
+
+- 文档同步：三份 README 均更新为当前功能（多源行情降级、演示数据、可编辑情景价格、可选通胀率、
+  图表成本线、加载骨架屏）；`AGENTS.md` 更新为当前架构（单页无标签、统一行情层、版本注入、通胀约定）。
+
+---
+
 ## [0.2.0] - 2026-09-17
 
 First tagged release. Everything below is backwards compatible: existing wallets, expenses and
