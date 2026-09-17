@@ -1,7 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { Activity, Bitcoin, Gauge, GripVertical, Target, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Activity,
+  Bitcoin,
+  Gauge,
+  GripVertical,
+  RotateCcw,
+  Sparkles,
+  Target,
+  X,
+} from "lucide-react";
 
 import { BtcPriceChart } from "@/components/accumulation-chart";
 import { Ahr999Card } from "@/components/ahr999-card";
@@ -13,12 +22,21 @@ import { LogoMark } from "@/components/logo-mark";
 import { PortfolioInput } from "@/components/portfolio-input";
 import { DataSettings } from "@/components/data-settings";
 import { ScenarioSimulator } from "@/components/scenario-simulator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   buildPriceProjection,
   findFirstFireYear,
 } from "@/lib/price-projection";
 import { projectDcaFire } from "@/lib/dca-fire";
-import { BTC_PRICE_SCENARIOS } from "@/lib/mock-data";
+import { buildScenarios, DEFAULT_SCENARIO_PRICES } from "@/lib/mock-data";
+import {
+  DEMO_DCA_PLAN,
+  DEMO_INFLATION_RATE,
+  DEMO_MONTHLY_EXPENSES,
+  DEMO_OTHER_ASSETS,
+  DEMO_WALLETS,
+  DEMO_WITHDRAWAL_RATE,
+} from "@/lib/demo-data";
 import {
   calculateCostBasis,
   calculateFireTarget,
@@ -29,6 +47,7 @@ import {
   calculateTotalBtc,
   calculateWeightedCostBasis,
   convertCurrency,
+  DEFAULT_ANNUAL_INFLATION_RATE,
   formatBtc,
   formatCurrency,
   formatPercentage,
@@ -42,22 +61,19 @@ import {
   type Translation,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { useBtcPrice, type BtcPriceStatus } from "@/hooks/use-btc-price";
+import { MARKET_SOURCE_LABELS } from "@/lib/market-data";
+import { useBtcPrice, type BtcPriceState } from "@/hooks/use-btc-price";
 import { useAhr999 } from "@/hooks/use-ahr999";
 
 
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
 import { usePersistentState } from "@/hooks/use-persistent-state";
-import type { Ahr999Recommendation, BtcUnit, BtcWallet, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
+import type { Ahr999Recommendation, BtcScenarioPrices, BtcUnit, BtcWallet, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
 
-const DEFAULT_WALLETS: BtcWallet[] = [
-  {
-    id: "default",
-    name: "Main",
-    btc: 1.2,
-    costBasis: 42_000,
-  },
-];
+// New installs start with NO holdings. Showing a hardcoded 1.2 BTC portfolio
+// made the dashboard look like it had real data. The onboarding banner offers a
+// one-click demo portfolio (lib/demo-data.ts) instead.
+const DEFAULT_WALLETS: BtcWallet[] = [];
 import { useExchangeRate } from "@/hooks/use-exchange-rate";
 
 // Module identifiers for the single-page reorderable layout.
@@ -103,6 +119,15 @@ function getFlatModules(rows: ModuleRow[]): ModuleId[] {
   return out;
 }
 
+function isScenarioPrices(v: unknown): v is BtcScenarioPrices {
+  if (!v || typeof v !== "object") return false;
+  const prices = v as Record<string, unknown>;
+  return (["bear", "base", "bull"] as const).every((key) => {
+    const value = prices[key];
+    return typeof value === "number" && Number.isFinite(value) && value > 0;
+  });
+}
+
 export default function Home() {
   const [language, setLanguage] = usePersistentState<Language>(
     "btc-fire-os:language",
@@ -120,6 +145,12 @@ export default function Home() {
   const [withdrawalRate, setWithdrawalRate] = usePersistentState(
     "btc-fire-os:withdrawal-rate",
     0.04,
+  );
+  const [inflationRate, setInflationRate] = usePersistentState(
+    "btc-fire-os:inflation-rate",
+    DEFAULT_ANNUAL_INFLATION_RATE,
+    (v): v is number =>
+      typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1,
   );
   const [dcaPlan, setDcaPlan] = usePersistentState<DcaPlanInput>(
     "btc-fire-os:dca-plan",
@@ -146,6 +177,23 @@ export default function Home() {
     false,
     (v): v is boolean => typeof v === "boolean",
   );
+  const [scenarioPrices, setScenarioPrices] = usePersistentState<BtcScenarioPrices>(
+    "btc-fire-os:scenario-prices",
+    { ...DEFAULT_SCENARIO_PRICES },
+    isScenarioPrices,
+  );
+  const [onboardingDismissed, setOnboardingDismissed] = usePersistentState(
+    "btc-fire-os:onboarding-dismissed",
+    false,
+    (v): v is boolean => typeof v === "boolean",
+  );
+
+  // Persisted state is restored after mount, so wait one tick before deciding
+  // whether to show the first-run banner (avoids a flash for returning users).
+  const [didMount, setDidMount] = useState(false);
+  useEffect(() => {
+    setDidMount(true);
+  }, []);
 
   // One-time migration: if saved rows don't match the new default order, force reset.
   useEffect(() => {
@@ -182,6 +230,28 @@ export default function Home() {
     }));
     setWallets(cleaned);
   }, [setWallets]);
+
+  /**
+   * One-click demo profile (see lib/demo-data.ts). Lets a first-time visitor see
+   * every module working without inventing numbers — and it all stays local.
+   */
+  const applyDemoData = useCallback(() => {
+    setWalletsClean(DEMO_WALLETS.map((wallet) => ({ ...wallet })));
+    setMonthlyExpenses(DEMO_MONTHLY_EXPENSES);
+    setWithdrawalRate(DEMO_WITHDRAWAL_RATE);
+    setInflationRate(DEMO_INFLATION_RATE);
+    setDcaPlan({ ...DEMO_DCA_PLAN });
+    setOtherAssets({ ...DEMO_OTHER_ASSETS });
+    setOnboardingDismissed(true);
+  }, [
+    setWalletsClean,
+    setMonthlyExpenses,
+    setWithdrawalRate,
+    setInflationRate,
+    setDcaPlan,
+    setOtherAssets,
+    setOnboardingDismissed,
+  ]);
 
   const { rate: cnyRate } = useExchangeRate();
   const btcPrice = useBtcPrice();
@@ -312,7 +382,7 @@ export default function Home() {
       portfolioValue,
     );
     const scenarioResults = calculateScenarioResults(
-      BTC_PRICE_SCENARIOS,
+      buildScenarios(scenarioPrices),
       btcHoldings,
       fireResult.requiredPortfolioValue,
     );
@@ -321,12 +391,14 @@ export default function Home() {
       currentPrice: btcPrice.price,
       requiredPortfolioValue: fireResult.requiredPortfolioValue,
       dcaPlan,
+      annualInflationRate: inflationRate,
     });
     const dcaFireProjection = projectDcaFire({
       btcHoldings,
       currentBtcPrice: btcPrice.price,
       requiredPortfolioValue: fireResult.requiredPortfolioValue,
       plan: dcaPlan,
+      annualInflationRate: inflationRate,
       otherAssets: {
         ...otherAssets,
         currentAmount: toUsd(otherAssets.currentAmount),
@@ -356,13 +428,18 @@ export default function Home() {
     btcHoldings,
     btcPrice.price,
     dcaPlan,
+    inflationRate,
     monthlyExpenses,
     otherAssets,
+    scenarioPrices,
     toUsd,
     withdrawalRate,
   ]);
 
   const flatModules = useMemo(() => getFlatModules(moduleRows), [moduleRows]);
+
+  // A stale ahr999 value is a real (cached) value, so keep showing it.
+  const hasAhr999Value = ahr999.status === "ready" || ahr999.status === "stale";
 
   const scrollToModule = useCallback((id: ModuleId) => {
     const el = document.getElementById(`module-${id}`);
@@ -441,6 +518,7 @@ export default function Home() {
                 language={language}
                 label={t.app.settings}
                 onResetLayout={() => setModuleRows([...DEFAULT_ROWS])}
+                onLoadDemoData={applyDemoData}
               />
             </div>
           </div>
@@ -449,36 +527,41 @@ export default function Home() {
         {/* Main content area — keeps the EXACT same max-width as before (max-w-7xl), nav is extra */}
         <div className="flex-1 flex justify-center">
           <div className="w-full max-w-7xl space-y-4 pt-6">
+            {didMount && !onboardingDismissed && wallets.length === 0 ? (
+              <OnboardingBanner
+                t={t.onboarding}
+                onLoadDemoData={applyDemoData}
+                onDismiss={() => setOnboardingDismissed(true)}
+              />
+            ) : null}
+
             <FireCommandSummary
               ahr999Label={
-                ahr999.status === "ready"
+                hasAhr999Value
                   ? ahr999.value.toFixed(4)
                   : t.ahr999.loading
               }
+              ahr999Pending={!hasAhr999Value}
               ahr999Suggestion={
-                ahr999.status === "ready"
+                hasAhr999Value
                   ? getAhr999Suggestion(ahr999.recommendation, t.ahr999)
                   : undefined
               }
               ahr9993dLabel={
-                ahr999.status === "ready"
+                hasAhr999Value
                   ? ahr999.value3d.toFixed(4)
                   : t.ahr999.loading
               }
               ahr9993dSuggestion={
-                ahr999.status === "ready"
+                hasAhr999Value
                   ? getAhr999Suggestion(ahr999.recommendation3d, t.ahr999)
                   : undefined
               }
               btcGap={model.btcGap}
               btcHoldings={btcHoldings}
               btcPrice={btcPrice.price}
-              btcPriceStatus={formatPriceStatus(
-                btcPrice.status,
-                btcPrice.lastUpdated,
-                t.app,
-                language,
-              )}
+              btcPriceIsPlaceholder={btcPrice.isPlaceholder}
+              btcPriceStatus={formatPriceStatus(btcPrice, t.app, language)}
               btcUnit={btcUnit}
               fireResult={model.fireResult}
               t={t.summary}
@@ -494,6 +577,10 @@ export default function Home() {
               labels={t.modules}
               showTip={!layoutTipDismissed}
               onDismissTip={() => setLayoutTipDismissed(true)}
+              isDefaultLayout={
+                JSON.stringify(moduleRows) === JSON.stringify(DEFAULT_ROWS)
+              }
+              onResetLayout={() => setModuleRows([...DEFAULT_ROWS])}
               renderModule={(id) => {
             const content = (() => {
               switch (id) {
@@ -505,10 +592,17 @@ export default function Home() {
                       t={t.portfolio}
                       onWalletsChange={setWalletsClean}
                       onBtcUnitChange={setBtcUnit}
+                      onLoadDemoData={applyDemoData}
                     />
                   );
                 case "dashboard":
-                  return <DashboardMetrics metrics={model.dashboardMetrics} t={t.dashboard} />;
+                  return (
+                    <DashboardMetrics
+                      metrics={model.dashboardMetrics}
+                      pricePending={btcPrice.isPlaceholder}
+                      t={t.dashboard}
+                    />
+                  );
                 case "fire":
                   return (
                     <FireCalculator
@@ -518,9 +612,11 @@ export default function Home() {
                         ...model.fireResult,
                         monthlyExpenses,
                       }}
+                      inflationRate={inflationRate}
                       t={t.fire}
                       onMonthlyExpensesChange={(value) => setMonthlyExpenses(toFixedPrecision(value, 2))}
                       onWithdrawalRateChange={setWithdrawalRate}
+                      onInflationRateChange={setInflationRate}
                     />
                   );
                  case "dca":
@@ -550,12 +646,20 @@ export default function Home() {
                       data={btcPriceHistory.data}
                       loading={btcPriceHistory.loading}
                       error={btcPriceHistory.error}
+                      averageCostBasis={averageCostBasis}
                       language={language}
                       t={t.chart}
                     />
                   );
                 case "scenario":
-                  return <ScenarioSimulator scenarios={model.scenarioResults} t={t.scenarios} />;
+                  return (
+                    <ScenarioSimulator
+                      scenarios={model.scenarioResults}
+                      prices={scenarioPrices}
+                      t={t.scenarios}
+                      onPricesChange={setScenarioPrices}
+                    />
+                  );
                  case "future":
                    return (
                      <FutureFireCard
@@ -563,6 +667,7 @@ export default function Home() {
                        btcHoldings={btcHoldings}
                        firstFireYear={model.firstFireYear}
                        isCurrentlyFireReady={model.fireResult.isFireReady}
+                       inflationRate={inflationRate}
                        points={model.futureFireProjection}
                        t={t.future}
                      />
@@ -628,8 +733,52 @@ type LanguageSelectorProps = {
   compact?: boolean;
 };
 
+type OnboardingBannerProps = {
+  t: Translation["onboarding"];
+  onLoadDemoData: () => void;
+  onDismiss: () => void;
+};
+
+/**
+ * First-run guidance. Shown only when there is no portfolio at all, so a new
+ * visitor gets a friendly starting point instead of a wall of zeros.
+ */
+function OnboardingBanner({ t, onLoadDemoData, onDismiss }: OnboardingBannerProps) {
+  return (
+    <section className="rounded-md border border-bitcoin/30 bg-bitcoin/5 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-bitcoin" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-foreground">{t.title}</h2>
+          </div>
+          <p className="max-w-3xl text-xs leading-relaxed text-muted">{t.body}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onLoadDemoData}
+            className="inline-flex items-center gap-2 rounded-md bg-bitcoin px-3.5 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            {t.loadDemo}
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex items-center rounded border border-border bg-surface px-3 py-2 text-xs text-muted transition-colors hover:border-bitcoin/40 hover:text-foreground"
+          >
+            {t.dismiss}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 type FireCommandSummaryProps = {
   ahr999Label: string;
+  ahr999Pending: boolean;
   ahr999Suggestion?: string;
   ahr9993dLabel: string;
   ahr9993dSuggestion?: string;
@@ -637,6 +786,8 @@ type FireCommandSummaryProps = {
   btcHoldings: number;
   btcPrice: number;
   btcPriceStatus: string;
+  /** True while the price is still the hardcoded placeholder, not a real quote. */
+  btcPriceIsPlaceholder: boolean;
   btcUnit: BtcUnit;
   fireResult: FireResult;
   t: Translation["summary"];
@@ -644,6 +795,7 @@ type FireCommandSummaryProps = {
 
 function FireCommandSummary({
   ahr999Label,
+  ahr999Pending,
   ahr999Suggestion,
   ahr9993dLabel,
   ahr9993dSuggestion,
@@ -651,12 +803,17 @@ function FireCommandSummary({
   btcHoldings,
   btcPrice,
   btcPriceStatus,
+  btcPriceIsPlaceholder,
   btcUnit,
   fireResult,
   t,
 }: FireCommandSummaryProps) {
   const progress = Math.min(fireResult.fireProgress * 100, 100);
   const isReady = fireResult.isFireReady;
+  // Every number below that is derived from the BTC price is unknown until a
+  // real quote arrives — show skeletons rather than numbers based on the
+  // hardcoded placeholder.
+  const pricePending = btcPriceIsPlaceholder;
 
   return (
     <section className="rounded-md border border-border bg-surface p-4 shadow-soft sm:p-5">
@@ -671,12 +828,16 @@ function FireCommandSummary({
               {t.primaryLabel}
             </div>
             <div className="mt-2 text-5xl font-semibold leading-none text-foreground sm:text-6xl">
-              {formatPercentage(fireResult.fireProgress)}
+              {pricePending ? (
+                <Skeleton className="h-12 w-40 sm:h-14" />
+              ) : (
+                formatPercentage(fireResult.fireProgress)
+              )}
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface">
               <div
                 className="h-full rounded-full bg-bitcoin"
-                style={{ width: `${progress}%` }}
+                style={{ width: pricePending ? "0%" : `${progress}%` }}
               />
             </div>
           </div>
@@ -686,17 +847,21 @@ function FireCommandSummary({
               label={t.currentStack}
               value={formatBtc(btcHoldings, btcUnit)}
               subvalue={formatCurrency(btcHoldings * btcPrice, 2)}
+              subvaluePending={pricePending}
             />
             <SummaryStat
               label={t.requiredBtc}
               value={formatBtc(fireResult.requiredBtc)}
+              valuePending={pricePending}
               subvalue={formatCurrency(fireResult.requiredPortfolioValue)}
             />
             <SummaryStat
               label={t.btcGap}
               tone={btcGap > 0 ? "default" : "positive"}
               value={formatBtc(btcGap)}
+              valuePending={pricePending}
               subvalue={btcGap > 0 ? formatCurrency(btcGap * btcPrice) : t.noGap}
+              subvaluePending={btcGap > 0 && pricePending}
             />
           </div>
         </div>
@@ -708,6 +873,7 @@ function FireCommandSummary({
             subvalue={btcPriceStatus}
             tone="positive"
             value={formatCurrency(btcPrice, 2)}
+            valuePending={btcPriceIsPlaceholder}
           />
           <div className="rounded-md border border-border bg-background p-4">
             <div className="grid grid-cols-2 gap-3">
@@ -719,7 +885,11 @@ function FireCommandSummary({
                   {t.ahr999}
                 </div>
                 <div className="break-words text-xl font-semibold text-foreground">
-                  {ahr999Label}
+                  {ahr999Pending ? (
+                    <Skeleton className="h-6 w-16" />
+                  ) : (
+                    ahr999Label
+                  )}
                 </div>
                 {ahr999Suggestion ? (
                   <div className="mt-1 text-xs text-muted">{ahr999Suggestion}</div>
@@ -733,7 +903,11 @@ function FireCommandSummary({
                   {t.ahr9993d}
                 </div>
                 <div className="break-words text-xl font-semibold text-foreground">
-                  {ahr9993dLabel}
+                  {ahr999Pending ? (
+                    <Skeleton className="h-6 w-16" />
+                  ) : (
+                    ahr9993dLabel
+                  )}
                 </div>
                 {ahr9993dSuggestion ? (
                   <div className="mt-1 text-xs text-muted">{ahr9993dSuggestion}</div>
@@ -745,6 +919,7 @@ function FireCommandSummary({
             icon={<Activity className="h-4 w-4" aria-hidden="true" />}
             label={t.fireTarget}
             subvalue={formatBtc(fireResult.requiredBtc)}
+            subvaluePending={btcPriceIsPlaceholder}
             value={formatCurrency(fireResult.requiredPortfolioValue)}
           />
         </div>
@@ -758,9 +933,19 @@ type SummaryStatProps = {
   value: string;
   subvalue?: string;
   tone?: "default" | "positive";
+  /** Show a skeleton instead of the value (price-derived, not known yet). */
+  valuePending?: boolean;
+  subvaluePending?: boolean;
 };
 
-function SummaryStat({ label, value, subvalue, tone = "default" }: SummaryStatProps) {
+function SummaryStat({
+  label,
+  value,
+  subvalue,
+  tone = "default",
+  valuePending = false,
+  subvaluePending = false,
+}: SummaryStatProps) {
   return (
     <div className="rounded-md border border-border bg-surface p-4">
       <div className="text-xs uppercase tracking-[0.08em] text-muted">{label}</div>
@@ -770,9 +955,15 @@ function SummaryStat({ label, value, subvalue, tone = "default" }: SummaryStatPr
           tone === "positive" && "text-positive",
         )}
       >
-        {value}
+        {valuePending ? <Skeleton className="h-6 w-28" /> : value}
       </div>
-      {subvalue ? <div className="mt-1 text-xs text-muted">{subvalue}</div> : null}
+      {subvalue ? (
+        subvaluePending ? (
+          <Skeleton className="mt-2 h-3 w-20" />
+        ) : (
+          <div className="mt-1 text-xs text-muted">{subvalue}</div>
+        )
+      ) : null}
     </div>
   );
 }
@@ -783,9 +974,19 @@ type SignalCardProps = {
   value: string;
   subvalue?: string;
   tone?: "default" | "positive";
+  valuePending?: boolean;
+  subvaluePending?: boolean;
 };
 
-function SignalCard({ icon, label, value, subvalue, tone = "default" }: SignalCardProps) {
+function SignalCard({
+  icon,
+  label,
+  value,
+  subvalue,
+  tone = "default",
+  valuePending = false,
+  subvaluePending = false,
+}: SignalCardProps) {
   return (
     <div className="rounded-md border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.08em] text-muted">
@@ -794,8 +995,16 @@ function SignalCard({ icon, label, value, subvalue, tone = "default" }: SignalCa
         </span>
         {label}
       </div>
-      <div className="break-words text-xl font-semibold text-foreground">{value}</div>
-      {subvalue ? <div className="mt-1 text-xs text-muted">{subvalue}</div> : null}
+      <div className="break-words text-xl font-semibold text-foreground">
+        {valuePending ? <Skeleton className="h-6 w-28" /> : value}
+      </div>
+      {subvalue ? (
+        subvaluePending ? (
+          <Skeleton className="mt-2 h-3 w-20" />
+        ) : (
+          <div className="mt-1 text-xs text-muted">{subvalue}</div>
+        )
+      ) : null}
     </div>
   );
 }
@@ -887,30 +1096,41 @@ function getAhr999Suggestion(
 type AppTranslation = Translation["app"];
 
 function formatPriceStatus(
-  status: BtcPriceStatus,
-  lastUpdated: Date | null,
+  price: BtcPriceState,
   t: AppTranslation,
   language: Language,
 ) {
+  // Never let the hardcoded placeholder look like a real quote.
+  if (price.isPlaceholder) {
+    return price.status === "offline" ? t.placeholderOffline : t.placeholderLoading;
+  }
+
   const statusLabel = {
     connecting: t.connecting,
     live: t.live,
     polling: t.polling,
+    cached: t.cached,
     offline: t.offline,
-  }[status];
+  }[price.status];
 
-  if (!lastUpdated) {
-    return statusLabel;
+  const parts = [statusLabel];
+
+  if (price.usingFallbackSource && price.source) {
+    parts.push(`${t.fallbackSource}: ${MARKET_SOURCE_LABELS[price.source]}`);
   }
 
-  const locale = language === "en" ? "en-US" : language === "zhTW" ? "zh-TW" : "zh-CN";
-  const updatedAt = new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(lastUpdated);
+  if (price.lastUpdated) {
+    const locale =
+      language === "en" ? "en-US" : language === "zhTW" ? "zh-TW" : "zh-CN";
+    const updatedAt = new Intl.DateTimeFormat(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(price.lastUpdated);
+    parts.push(updatedAt);
+  }
 
-  return `${statusLabel} ${updatedAt}`;
+  return parts.join(" · ");
 }
 
 // ------------------------------
@@ -927,6 +1147,8 @@ type ModuleListProps = {
   labels: ModuleListLabels;
   showTip: boolean;
   onDismissTip: () => void;
+  isDefaultLayout: boolean;
+  onResetLayout: () => void;
 };
 
 function ModuleList({
@@ -937,6 +1159,8 @@ function ModuleList({
   labels,
   showTip,
   onDismissTip,
+  isDefaultLayout,
+  onResetLayout,
 }: ModuleListProps) {
   const moveRow = useCallback(
     (from: number, to: number) => {
@@ -990,6 +1214,20 @@ function ModuleList({
               <span className="hidden sm:inline">{labels.dismissTip}</span>
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {!isDefaultLayout ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onResetLayout}
+            className="inline-flex items-center gap-1.5 rounded border border-border bg-surface px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:border-bitcoin/40 hover:text-foreground"
+            title={labels.resetLayout}
+          >
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+            {labels.resetLayout}
+          </button>
         </div>
       ) : null}
 

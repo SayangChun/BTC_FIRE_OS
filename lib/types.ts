@@ -34,6 +34,13 @@ export type BtcScenario = {
   description: string;
 };
 
+/** User-editable scenario prices (persisted, defaults in lib/mock-data.ts). */
+export type BtcScenarioPrices = {
+  bear: number;
+  base: number;
+  bull: number;
+};
+
 export type ScenarioResult = BtcScenario & {
   projectedPortfolioValue: number;
   requiredPortfolioValue: number;
@@ -110,8 +117,11 @@ export type ExportData = {
   averageCostBasis?: number;
   monthlyExpenses: number;
   withdrawalRate: number;
+  /** Optional expected annual inflation (grows future FIRE targets). */
+  inflationRate?: number;
   dcaPlan: DcaPlanInput;
   otherAssets: OtherAssetsInput;
+  scenarioPrices?: BtcScenarioPrices;
 };
 
 export type DcaFireProjection = {
@@ -126,6 +136,8 @@ export type DcaFireProjection = {
   projectedBtcAtFire: number | null;
   projectedOtherAssetsAtFire: number | null;
   projectedValueAtFire: number | null;
+  /** Inflation-adjusted target at the projected FIRE date. */
+  requiredValueAtFire: number | null;
 };
 
 export type BtcRichAddress = {

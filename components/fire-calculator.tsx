@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  INFLATION_PREVIEW_YEARS,
   currencySymbol,
   formatBtc,
   formatCurrency,
   formatPercentage,
+  inflateValue,
 } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type { Currency, FireResult } from "@/lib/types";
@@ -18,23 +20,31 @@ import type { Currency, FireResult } from "@/lib/types";
 type FireCalculatorProps = {
   currency?: Currency;
   fireResult: FireResult;
+  /** Expected annual inflation; 0 disables target growth. */
+  inflationRate: number;
   t: Translation["fire"];
   onMonthlyExpensesChange: (value: number) => void;
   onWithdrawalRateChange: (value: number) => void;
+  onInflationRateChange: (value: number) => void;
 };
 
 export function FireCalculator({
   currency = "USD",
   fireResult,
+  inflationRate,
   t,
   onMonthlyExpensesChange,
   onWithdrawalRateChange,
+  onInflationRateChange,
 }: FireCalculatorProps) {
   const [expenseText, setExpenseText] = useState(() => {
     const v = fireResult.monthlyExpenses;
     return v % 1 === 0 ? String(v) : v.toFixed(2);
   });
   const [rateText, setRateText] = useState(() => String((fireResult.withdrawalRate * 100).toFixed(2)));
+  const [inflationText, setInflationText] = useState(() =>
+    (inflationRate * 100).toFixed(1),
+  );
 
   const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -78,6 +88,27 @@ export function FireCalculator({
     }
   }, [rateText, fireResult.withdrawalRate]);
 
+  const handleInflationChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+    setInflationText(raw);
+    if (raw !== "") {
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+        onInflationRateChange(parsed / 100);
+      }
+    }
+  }, [onInflationRateChange]);
+
+  const handleInflationBlur = useCallback(() => {
+    const parsed = parseFloat(inflationText);
+    if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+      setInflationText((inflationRate * 100).toFixed(1));
+    } else {
+      setInflationText(parsed.toFixed(1));
+    }
+  }, [inflationText, inflationRate]);
+
   const progress = Math.min(fireResult.fireProgress * 100, 100);
 
   return (
@@ -89,7 +120,7 @@ export function FireCalculator({
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="monthly-expenses">{t.monthlyExpenses}</Label>
             <div className="relative">
@@ -141,6 +172,26 @@ export function FireCalculator({
                ))}
              </div>
            </div>
+
+           <div className="space-y-2">
+             <Label htmlFor="inflation-rate" className="flex items-center gap-1">
+               {t.inflationRate}
+               <span className="group/icon relative cursor-help text-muted" aria-label={t.inflationRateHelp}>
+                 <Info className="h-3 w-3" />
+                 <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 w-max max-w-[220px] -translate-y-1/2 rounded border border-border bg-background p-2 text-left text-xs text-foreground opacity-0 shadow-soft transition-opacity group-hover/icon:opacity-100">
+                   {t.inflationRateHelp}
+                 </span>
+               </span>
+             </Label>
+             <Input
+               id="inflation-rate"
+               inputMode="decimal"
+               type="text"
+               value={inflationText}
+               onChange={handleInflationChange}
+               onBlur={handleInflationBlur}
+             />
+           </div>
         </div>
 
         <div className="space-y-3">
@@ -178,6 +229,31 @@ export function FireCalculator({
             value={fireResult.isFireReady ? t.ready : t.stacking}
           />
         </div>
+
+        {inflationRate > 0 ? (
+          <div className="rounded-md border border-border bg-background p-4">
+            <div className="text-xs uppercase tracking-[0.08em] text-muted">
+              {t.inflationRate} · {(inflationRate * 100).toFixed(1)}%
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <InflationCell
+                label={t.targetToday}
+                value={fireResult.requiredPortfolioValue}
+              />
+              {INFLATION_PREVIEW_YEARS.map((years) => (
+                <InflationCell
+                  key={years}
+                  label={t.targetInYears.replace("{n}", String(years))}
+                  value={inflateValue(
+                    fireResult.requiredPortfolioValue,
+                    inflationRate,
+                    years,
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -199,6 +275,20 @@ function FireStat({ label, value, tone = "default" }: FireStatProps) {
         }`}
       >
         {value}
+      </div>
+    </div>
+  );
+}
+
+/** Compact cell for the "target grows with inflation" preview row. */
+function InflationCell({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.06em] text-muted">
+        {label}
+      </div>
+      <div className="mt-1 break-words text-sm font-semibold tabular-nums text-foreground">
+        {formatCurrency(value)}
       </div>
     </div>
   );

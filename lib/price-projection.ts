@@ -1,3 +1,4 @@
+import { DEFAULT_ANNUAL_INFLATION_RATE, inflateValue } from "@/lib/calculations";
 import type {
   DcaPlanInput,
   PriceProjectionPoint,
@@ -13,8 +14,6 @@ const scenarioMultipliers: Record<PriceProjectionScenario, number> = {
   base: 1,
   bull: 1.55,
 };
-
-const ANNUAL_INFLATION_RATE = 0.025;
 
 export function calculatePowerLawPrice(date = new Date()): number {
   const ageDays = Math.max(
@@ -72,12 +71,15 @@ export function buildPriceProjection({
   requiredPortfolioValue,
   years = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   dcaPlan,
+  annualInflationRate = DEFAULT_ANNUAL_INFLATION_RATE,
 }: {
   btcHoldings: number;
   currentPrice: number;
   requiredPortfolioValue: number;
   years?: number[];
   dcaPlan?: DcaPlanInput;
+  /** User-configurable; 0 disables inflation growth of the target. */
+  annualInflationRate?: number;
 }): PriceProjectionPoint[] {
   const scenarios: PriceProjectionScenario[] = ["bear", "base", "bull"];
   const expectedMonthlyDca = dcaPlan ? dcaPlan.dailyAmount * (365 / 12) : 0;
@@ -91,8 +93,11 @@ export function buildPriceProjection({
           : btcHoldings;
       const projectedPortfolioValue = projectedBtc * projectedPrice;
       const currentHoldingsValue = btcHoldings * projectedPrice;
-      const inflationFactor = (1 + ANNUAL_INFLATION_RATE) ** year;
-      const effectiveRequired = requiredPortfolioValue * inflationFactor;
+      const effectiveRequired = inflateValue(
+        requiredPortfolioValue,
+        annualInflationRate,
+        year,
+      );
       const requiredBtcForFire =
         projectedPrice > 0 ? effectiveRequired / projectedPrice : 0;
       const fireProgress =

@@ -3,28 +3,13 @@
 import { useEffect, useState } from "react";
 
 import { calculateAhr999 } from "@/lib/ahr999";
+import { fetchDailyCloses, isAbortError } from "@/lib/market-data";
 import type { Ahr999Frequency } from "@/lib/types";
 
-const BINANCE_DAILY_KLINES =
-  "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=1000";
+const SAMPLE_DAYS = 1000;
 const AHR999_COST_WINDOW = 200;
 
 type Ahr999FrequencyStatus = "loading" | "ready" | "error";
-
-type BinanceKline = [
-  number,
-  string,
-  string,
-  string,
-  string,
-  string,
-  number,
-  string,
-  number,
-  string,
-  string,
-  string,
-];
 
 export function useAhr999Frequency(): Ahr999Frequency & {
   status: Ahr999FrequencyStatus;
@@ -46,17 +31,11 @@ export function useAhr999Frequency(): Ahr999Frequency & {
 
     async function fetchFrequency() {
       try {
-        const response = await fetch(BINANCE_DAILY_KLINES, {
-          cache: "no-store",
-          signal: abortController.signal,
-        });
-        const klines = (await response.json()) as BinanceKline[];
-        const closes = klines
-          .map((kline) => ({
-            date: new Date(kline[0]),
-            close: Number(kline[4]),
-          }))
-          .filter((point) => Number.isFinite(point.close) && point.close > 0);
+        const { points } = await fetchDailyCloses(
+          SAMPLE_DAYS,
+          abortController.signal,
+        );
+        const closes = points;
 
         const counts = { low: 0, normal: 0, high: 0 };
         let sampleDays = 0;
@@ -96,7 +75,7 @@ export function useAhr999Frequency(): Ahr999Frequency & {
           status: "ready",
         });
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         if (isMounted) {
           setState((current) => ({ ...current, status: "error" }));
         }

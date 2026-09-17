@@ -1,4 +1,9 @@
-import type { BtcDistributionBucket, BtcScenario, PricePoint } from "@/lib/types";
+import type {
+  BtcDistributionBucket,
+  BtcScenario,
+  BtcScenarioPrices,
+  PricePoint,
+} from "@/lib/types";
 import { calculatePowerLawPrice } from "@/lib/price-projection";
 
 export const BTC_DISTRIBUTION: readonly BtcDistributionBucket[] = [
@@ -71,3 +76,18 @@ export const BTC_PRICE_SCENARIOS: BtcScenario[] = [
     description: "Expansion scenario",
   },
 ];
+
+/** Defaults for the user-editable scenario prices. */
+export const DEFAULT_SCENARIO_PRICES: BtcScenarioPrices = {
+  bear: 50_000,
+  base: 100_000,
+  bull: 250_000,
+};
+
+/** Build the scenario list from the user's (persisted) prices. */
+export function buildScenarios(prices: BtcScenarioPrices): BtcScenario[] {
+  return BTC_PRICE_SCENARIOS.map((scenario) => ({
+    ...scenario,
+    price: prices[scenario.name.toLowerCase() as keyof BtcScenarioPrices],
+  }));
+}

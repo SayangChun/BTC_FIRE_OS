@@ -1,9 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Cloud, Download, LayoutList, RefreshCw, Settings, Upload } from "lucide-react";
+import {
+  Cloud,
+  Download,
+  LayoutList,
+  RefreshCw,
+  Settings,
+  Sparkles,
+  Upload,
+} from "lucide-react";
 import type { Language } from "@/lib/i18n";
-import type { BtcWallet, DcaPlanInput, OtherAssetsInput } from "@/lib/types";
+import { DEFAULT_ANNUAL_INFLATION_RATE } from "@/lib/calculations";
+import { DEFAULT_SCENARIO_PRICES } from "@/lib/mock-data";
+import type {
+  BtcScenarioPrices,
+  BtcWallet,
+  DcaPlanInput,
+  OtherAssetsInput,
+} from "@/lib/types";
 import {
   isWebDavConfigured,
   saveWebDavConfig,
@@ -17,6 +32,8 @@ type SettingsTranslation = {
   importBody: string;
   invalidFile: string;
   importSuccess: string;
+  loadDemo: string;
+  loadDemoConfirm: string;
   resetData: string;
   resetConfirm: string;
   resetLayout: string;
@@ -41,9 +58,17 @@ type DataSettingsProps = {
   language: Language;
   label?: string;
   onResetLayout?: () => void;
+  /** Fills a sample portfolio + expenses so a new visitor can explore. */
+  onLoadDemoData?: () => void;
 };
 
-export function DataSettings({ t, language, label, onResetLayout }: DataSettingsProps) {
+export function DataSettings({
+  t,
+  language,
+  label,
+  onResetLayout,
+  onLoadDemoData,
+}: DataSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [webdavConfigured, setWebdavConfigured] = useState(false);
@@ -82,6 +107,8 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
       withdrawalRate: "btc-fire-os:withdrawal-rate",
       dcaPlan: "btc-fire-os:dca-plan",
       otherAssets: "btc-fire-os:other-assets",
+      scenarioPrices: "btc-fire-os:scenario-prices",
+      inflationRate: "btc-fire-os:inflation-rate",
     };
 
     const raw: Record<string, unknown> = {
@@ -144,6 +171,8 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
           { key: "withdrawalRate", label: labels.withdrawalRate },
           { key: "dcaPlan", label: labels.dcaPlan },
           { key: "otherAssets", label: labels.otherAssets },
+          { key: "scenarioPrices", label: labels.scenarioPrices },
+          { key: "inflationRate", label: labels.inflationRate },
         ];
 
         const lines: string[] = [];
@@ -210,14 +239,20 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
       withdrawalRate: "btc-fire-os:withdrawal-rate",
       dcaPlan: "btc-fire-os:dca-plan",
       otherAssets: "btc-fire-os:other-assets",
+      scenarioPrices: "btc-fire-os:scenario-prices",
+      inflationRate: "btc-fire-os:inflation-rate",
     };
 
     const defaults: Record<string, unknown> = {
-      wallets: [{ id: "default", name: "Main", btc: 1.2, costBasis: 42_000 }],
+      // New installs start with no holdings at all — an honest empty state
+      // instead of a fake 1.2 BTC portfolio.
+      wallets: [],
       monthlyExpenses: 4_500,
       withdrawalRate: 0.04,
       dcaPlan: { dailyAmount: 30 },
       otherAssets: { currentAmount: 0, annualReturnRate: 0.04, monthlyCashflow: 0 },
+      scenarioPrices: { ...DEFAULT_SCENARIO_PRICES },
+      inflationRate: DEFAULT_ANNUAL_INFLATION_RATE,
     };
 
     for (const [field, storageKey] of Object.entries(keyMap)) {
@@ -239,6 +274,13 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
     onResetLayout();
     setIsOpen(false);
   }, [onResetLayout, t.resetLayoutConfirm]);
+
+  const handleLoadDemo = useCallback(() => {
+    if (!onLoadDemoData) return;
+    if (!confirm(t.loadDemoConfirm)) return;
+    onLoadDemoData();
+    setIsOpen(false);
+  }, [onLoadDemoData, t.loadDemoConfirm]);
 
   const handleConfigureWebDav = useCallback(() => {
     const currentUrl = localStorage.getItem("btc-fire-os:webdav:url") || "https://";
@@ -273,6 +315,8 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
       withdrawalRate: "btc-fire-os:withdrawal-rate",
       dcaPlan: "btc-fire-os:dca-plan",
       otherAssets: "btc-fire-os:other-assets",
+      scenarioPrices: "btc-fire-os:scenario-prices",
+      inflationRate: "btc-fire-os:inflation-rate",
     };
 
     const raw: Record<string, unknown> = {
@@ -338,6 +382,8 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
         { key: "withdrawalRate", label: labels.withdrawalRate },
         { key: "dcaPlan", label: labels.dcaPlan },
         { key: "otherAssets", label: labels.otherAssets },
+        { key: "scenarioPrices", label: labels.scenarioPrices },
+        { key: "inflationRate", label: labels.inflationRate },
       ];
 
       const lines: string[] = [];
@@ -424,6 +470,16 @@ export function DataSettings({ t, language, label, onResetLayout }: DataSettings
             <Download className="h-4 w-4 shrink-0 text-muted" />
             {t.importData}
           </button>
+          {onLoadDemoData ? (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-background"
+              onClick={handleLoadDemo}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-muted" />
+              {t.loadDemo}
+            </button>
+          ) : null}
           <div className="my-1 border-t border-border" />
           <button
             type="button"
@@ -487,6 +543,8 @@ const fieldLabels: Record<Language, Record<string, string>> = {
     withdrawalRate: "提取率",
     dcaPlan: "DCA 定投",
     otherAssets: "其他资产",
+    scenarioPrices: "情景价格",
+    inflationRate: "预期年通胀率",
   },
   zhTW: {
     language: "語言",
@@ -499,6 +557,8 @@ const fieldLabels: Record<Language, Record<string, string>> = {
     withdrawalRate: "提取率",
     dcaPlan: "DCA 定投",
     otherAssets: "其他資產",
+    scenarioPrices: "情境價格",
+    inflationRate: "預期年通膨率",
   },
   en: {
     language: "Language",
@@ -511,6 +571,8 @@ const fieldLabels: Record<Language, Record<string, string>> = {
     withdrawalRate: "Withdrawal Rate",
     dcaPlan: "DCA Plan",
     otherAssets: "Other Assets",
+    scenarioPrices: "Scenario prices",
+    inflationRate: "Expected annual inflation",
   },
 };
 
@@ -525,6 +587,7 @@ function formatFieldValue(field: string, value: unknown): string {
       return names[value as string] ?? String(value);
     }
     case "withdrawalRate":
+    case "inflationRate":
       return `${((value as number) * 100).toFixed(2)}%`;
     case "dcaPlan": {
       const p = value as DcaPlanInput;
@@ -534,6 +597,10 @@ function formatFieldValue(field: string, value: unknown): string {
       const a = value as OtherAssetsInput;
       const cf = (a as any).monthlyCashflow ?? 0;
       return `${formatNumber(a.currentAmount)} +${formatNumber(cf)}/mo (${(a.annualReturnRate * 100).toFixed(1)}%)`;
+    }
+    case "scenarioPrices": {
+      const p = value as BtcScenarioPrices;
+      return `${formatNumber(p.bear)} / ${formatNumber(p.base)} / ${formatNumber(p.bull)}`;
     }
     case "wallets": {
       const ws = value as BtcWallet[];

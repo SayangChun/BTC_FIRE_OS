@@ -2,6 +2,7 @@ import { ArrowDownRight, ArrowUpRight, Bitcoin, CircleDollarSign } from "lucide-
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -12,10 +13,16 @@ import type { DashboardMetrics } from "@/lib/types";
 
 type DashboardMetricsProps = {
   metrics: DashboardMetrics;
+  /** True while no real BTC price is available: price-derived values are unknown. */
+  pricePending?: boolean;
   t: Translation["dashboard"];
 };
 
-export function DashboardMetrics({ metrics, t }: DashboardMetricsProps) {
+export function DashboardMetrics({
+  metrics,
+  pricePending = false,
+  t,
+}: DashboardMetricsProps) {
   const isProfit = metrics.profitLoss >= 0;
 
   return (
@@ -31,11 +38,13 @@ export function DashboardMetrics({ metrics, t }: DashboardMetricsProps) {
           <Metric
             icon={<Bitcoin className="h-4 w-4" aria-hidden="true" />}
             label={t.btcPrice}
+            pending={pricePending}
             value={formatCurrency(metrics.currentBtcPrice, 2)}
           />
           <Metric
             icon={<CircleDollarSign className="h-4 w-4" aria-hidden="true" />}
             label={t.portfolioValue}
+            pending={pricePending}
             value={formatCurrency(metrics.portfolioValue)}
           />
           <Metric
@@ -51,6 +60,7 @@ export function DashboardMetrics({ metrics, t }: DashboardMetricsProps) {
               )
             }
             label={t.profitLoss}
+            pending={pricePending}
             tone={isProfit ? "positive" : "negative"}
             value={`${formatSignedCurrency(metrics.profitLoss)} (${formatSignedPercentage(
               metrics.profitLossPercentage,
@@ -67,9 +77,11 @@ type MetricProps = {
   value: string;
   icon?: ReactNode;
   tone?: "default" | "positive" | "negative";
+  /** Render a skeleton instead of the value (value not known yet). */
+  pending?: boolean;
 };
 
-function Metric({ label, value, icon, tone = "default" }: MetricProps) {
+function Metric({ label, value, icon, tone = "default", pending = false }: MetricProps) {
   const toneClass =
     tone === "positive"
       ? "text-positive"
@@ -84,7 +96,7 @@ function Metric({ label, value, icon, tone = "default" }: MetricProps) {
         {label}
       </div>
       <div className={`break-words text-xl font-semibold ${toneClass}`}>
-        {value}
+        {pending ? <Skeleton className="h-6 w-28" /> : value}
       </div>
     </div>
   );

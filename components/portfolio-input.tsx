@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Info, Plus, Trash2, Wallet } from "lucide-react";
+import { Info, Plus, Sparkles, Trash2, Wallet } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,8 @@ type PortfolioInputProps = {
   t: Translation["portfolio"];
   onWalletsChange: (wallets: BtcWallet[]) => void;
   onBtcUnitChange: (unit: BtcUnit) => void;
+  /** Fills a sample portfolio so a first-time visitor can explore quickly. */
+  onLoadDemoData?: () => void;
 };
 
 function HoldingsInput({
@@ -195,7 +197,14 @@ function WalletRow({
   );
 }
 
-export function PortfolioInput({ wallets, btcUnit, t, onWalletsChange, onBtcUnitChange }: PortfolioInputProps) {
+export function PortfolioInput({
+  wallets,
+  btcUnit,
+  t,
+  onWalletsChange,
+  onBtcUnitChange,
+  onLoadDemoData,
+}: PortfolioInputProps) {
   const totalBtc = calculateTotalBtc(wallets);
   const weightedCost = calculateWeightedCostBasis(wallets);
   const walletsRef = useRef(wallets);
@@ -294,8 +303,23 @@ export function PortfolioInput({ wallets, btcUnit, t, onWalletsChange, onBtcUnit
           </div>
 
           {wallets.length === 0 ? (
-            <div className="rounded border border-dashed border-border p-4 text-center text-sm text-muted">
-              {t.noWallets}
+            <div className="space-y-3 rounded-md border border-dashed border-border bg-background p-5 text-center">
+              <div className="text-sm font-semibold text-foreground">
+                {t.emptyTitle}
+              </div>
+              <p className="mx-auto max-w-sm text-xs leading-relaxed text-muted">
+                {t.emptyBody}
+              </p>
+              {onLoadDemoData ? (
+                <button
+                  type="button"
+                  onClick={onLoadDemoData}
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-bitcoin px-3.5 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  {t.loadDemo}
+                </button>
+              ) : null}
             </div>
           ) : (
             wallets.map((wallet) => (

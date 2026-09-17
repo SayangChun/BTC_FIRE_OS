@@ -3,3 +3,6 @@ node_modules
 out
 *.tsbuildinfo
 .vercel
+
+# Local AI assistant workspace (project notes / memory) — not part of the app
+.workbuddy-ai

@@ -6,6 +6,7 @@ import {
   AreaChart,
   Brush,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,7 +15,8 @@ import {
 import { TrendingUp } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/calculations";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency, formatSignedPercentage } from "@/lib/calculations";
 import type { Translation } from "@/lib/i18n";
 import type { PricePoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -25,9 +27,13 @@ type BtcPriceChartProps = {
   data: PricePoint[];
   loading: boolean;
   error: boolean;
+  /** Weighted average cost basis (USD per BTC). 0 hides the cost line. */
+  averageCostBasis?: number;
   t: Translation["chart"];
   language: string;
 };
+
+const COST_LINE_COLOR = "#A3A3A3";
 
 function fmtDate(dateStr: string, locale: string) {
   const d = new Date(dateStr + "T00:00:00Z");
@@ -56,7 +62,14 @@ function downsample<T>(arr: T[], maxPoints: number): T[] {
   return out;
 }
 
-export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceChartProps) {
+export function BtcPriceChart({
+  data,
+  loading,
+  error,
+  averageCostBasis = 0,
+  t,
+  language,
+}: BtcPriceChartProps) {
   const [range, setRange] = useState<RangeKey>("ALL");
 
   const filteredRaw = useMemo(() => {
@@ -73,6 +86,7 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
 
   const locale = language === "zhTW" ? "zh-TW" : language === "en" ? "en-US" : "zh-CN";
   const currentPrice = data.length > 0 ? data[data.length - 1].price : 0;
+  const hasCostLine = averageCostBasis > 0;
 
   return (
     <Card>
@@ -84,9 +98,24 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-2xl font-semibold text-foreground">
-            {loading ? "--" : formatCurrency(currentPrice)}
-          </span>
+          <div className="min-w-0">
+            <span className="block text-2xl font-semibold text-foreground">
+              {loading ? <Skeleton className="h-7 w-32" /> : formatCurrency(currentPrice)}
+            </span>
+            {!loading && hasCostLine ? (
+              <span
+                className="mt-1 flex items-center gap-1.5 text-xs text-muted"
+                title={t.costLineHint}
+              >
+                <span
+                  className="inline-block h-0 w-4 border-t border-dashed"
+                  style={{ borderColor: COST_LINE_COLOR }}
+                  aria-hidden="true"
+                />
+                {t.costLine} {formatCurrency(averageCostBasis)}
+              </span>
+            ) : null}
+          </div>
           {!loading && (
             <div className="flex flex-wrap gap-1.5">
               {RANGES.map((key) => (
@@ -110,8 +139,9 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
 
         <div className="h-72 w-full">
           {loading ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted">
-              {t.loading}
+            <div className="flex h-full flex-col justify-end gap-1.5 pb-6">
+              <Skeleton className="h-full w-full" />
+              <span className="text-center text-xs text-muted">{t.loading}</span>
             </div>
           ) : error ? (
             <div className="flex h-full items-center justify-center text-sm text-negative">
@@ -146,6 +176,9 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const p = payload[0].payload as PricePoint;
+                    const vsCost = hasCostLine
+                      ? (p.price - averageCostBasis) / averageCostBasis
+                      : null;
                     return (
                       <div className="rounded-md border border-border bg-background p-3 text-sm shadow-soft">
                         <div className="font-semibold text-foreground">
@@ -154,10 +187,33 @@ export function BtcPriceChart({ data, loading, error, t, language }: BtcPriceCha
                         <div className="mt-1 text-bitcoin">
                           {formatCurrency(p.price)}
                         </div>
+                        {vsCost !== null ? (
+                          <div className="mt-1 text-xs text-muted">
+                            {t.profitVsCost}:{" "}
+                            <span
+                              className={
+                                vsCost >= 0 ? "text-positive" : "text-negative"
+                              }
+                            >
+                              {formatSignedPercentage(vsCost)}
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   }}
                 />
+                {hasCostLine ? (
+                  <ReferenceLine
+                    y={averageCostBasis}
+                    stroke={COST_LINE_COLOR}
+                    strokeDasharray="4 4"
+                    strokeWidth={1.5}
+                    // Never distort the price axis: the line only shows when the
+                    // cost basis is inside the visible range (see the legend note).
+                    ifOverflow="discard"
+                  />
+                ) : null}
                 <Area
                   dataKey="price"
                   fill="url(#btcPrice)"

@@ -1,3 +1,7 @@
+import {
+  DEFAULT_ANNUAL_INFLATION_RATE,
+  inflateValue,
+} from "@/lib/calculations";
 import { projectBtcPrice } from "@/lib/price-projection";
 import type {
   DcaFireProjection,
@@ -18,12 +22,19 @@ export function projectDcaFire({
   requiredPortfolioValue,
   plan,
   otherAssets,
+  annualInflationRate = DEFAULT_ANNUAL_INFLATION_RATE,
 }: {
   btcHoldings: number;
   currentBtcPrice: number;
   requiredPortfolioValue: number;
   plan: DcaPlanInput;
   otherAssets: OtherAssetsInput;
+  /**
+   * Grows the FIRE target over time, matching buildPriceProjection.
+   * Without it this projection would ignore inflation and report an
+   * unrealistically early FIRE date.
+   */
+  annualInflationRate?: number;
 }): DcaFireProjection {
   const expectedDailyDca = calculateExpectedDailyDca(plan);
   const expectedMonthlyDca = expectedDailyDca * DAYS_PER_MONTH;
@@ -61,7 +72,14 @@ export function projectDcaFire({
     projectedOtherAssets += monthlyCashflow;
     const projectedValue = projectedBtc * projectedPrice + projectedOtherAssets;
 
-    if (projectedValue >= requiredPortfolioValue) {
+    // The target itself grows with inflation, so the comparison is apples-to-apples.
+    const requiredValueNow = inflateValue(
+      requiredPortfolioValue,
+      annualInflationRate,
+      yearsFromNow,
+    );
+
+    if (projectedValue >= requiredValueNow) {
       const projectedFireDate = new Date();
       projectedFireDate.setMonth(projectedFireDate.getMonth() + month);
 
@@ -77,6 +95,7 @@ export function projectDcaFire({
         projectedBtcAtFire: projectedBtc,
         projectedOtherAssetsAtFire: projectedOtherAssets,
         projectedValueAtFire: projectedValue,
+        requiredValueAtFire: requiredValueNow,
       };
     }
   }
@@ -93,6 +112,7 @@ export function projectDcaFire({
     projectedBtcAtFire: null,
     projectedOtherAssetsAtFire: null,
     projectedValueAtFire: null,
+    requiredValueAtFire: null,
   };
 }
 

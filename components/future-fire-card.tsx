@@ -18,6 +18,8 @@ type FutureFireCardProps = {
   btcHoldings: number;
   firstFireYear: number | null;
   isCurrentlyFireReady: boolean;
+  /** Inflation assumption used by the projection (shown for transparency). */
+  inflationRate: number;
   t: Translation["future"];
 };
 
@@ -27,6 +29,7 @@ export function FutureFireCard({
   btcHoldings,
   firstFireYear,
   isCurrentlyFireReady,
+  inflationRate,
   t,
 }: FutureFireCardProps) {
   const tenYearBase = points.find(
@@ -43,6 +46,14 @@ export function FutureFireCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-6 text-muted">{t.description}</p>
+        {inflationRate > 0 ? (
+          <p className="text-xs text-muted">
+            {t.inflationAssumption.replace(
+              "{rate}",
+              (inflationRate * 100).toFixed(1),
+            )}
+          </p>
+        ) : null}
 
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryStat

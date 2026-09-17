@@ -168,7 +168,7 @@ export function DcaFirePlannerCard({
                </div>
              )}
            {projection.projectedFireDate ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <SmallStat
                 label={t.btcAtFire}
                 value={
@@ -190,6 +190,14 @@ export function DcaFirePlannerCard({
                 value={
                   projection.projectedValueAtFire
                     ? formatCurrency(projection.projectedValueAtFire)
+                    : "--"
+                }
+              />
+              <SmallStat
+                label={t.requiredAtFire}
+                value={
+                  projection.requiredValueAtFire
+                    ? formatCurrency(projection.requiredValueAtFire)
                     : "--"
                 }
               />

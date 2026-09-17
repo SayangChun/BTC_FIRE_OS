@@ -54,6 +54,28 @@ export function formatTopPercent(p: number): string {
   return `${p.toFixed(2)}%`;
 }
 
+/**
+ * Default expected annual inflation for long-horizon targets.
+ * User-configurable (FIRE calculator) — 0 means "ignore inflation".
+ */
+export const DEFAULT_ANNUAL_INFLATION_RATE = 0.025;
+
+/** Horizons used for the "target grows over time" preview on the FIRE card. */
+export const INFLATION_PREVIEW_YEARS = [5, 10, 20] as const;
+
+/** Grow a today-value to its future nominal value. */
+export function inflateValue(
+  value: number,
+  annualInflationRate: number,
+  years: number,
+): number {
+  const rate = Number.isFinite(annualInflationRate)
+    ? Math.max(annualInflationRate, 0)
+    : 0;
+  const horizon = Number.isFinite(years) ? Math.max(years, 0) : 0;
+  return safeNumber(value) * (1 + rate) ** horizon;
+}
+
 export const BTC_UNITS: Record<BtcUnit, { label: string; factor: number; decimals: number; step: string }> = {
   BTC: { label: "BTC", factor: 1, decimals: 8, step: "0.00000001" },
   mBTC: { label: "mBTC", factor: 1000, decimals: 5, step: "0.00001" },

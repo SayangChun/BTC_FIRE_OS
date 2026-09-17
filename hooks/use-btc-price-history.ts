@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchKlines, isAbortError, type BinanceKline } from "@/lib/market-data";
 import type { PricePoint } from "@/lib/types";
 
-const BINANCE_KLINES = "https://api.binance.com/api/v3/klines";
 const CHUNK = 1000;
 
 const CACHE_KEY = "btc-fire-os:btc-price-history:v1";
 const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12h stale-while-revalidate
 
-type Kline = [number, string, string, string, string, string, number, string, number, string, string, string];
-
-function parseKline(k: Kline): PricePoint | null {
+function parseKline(k: BinanceKline): PricePoint | null {
   const close = Number(k[4]);
   if (!Number.isFinite(close) || close <= 0) return null;
   const d = new Date(k[0]);
@@ -58,13 +56,18 @@ export function useBtcPriceHistory(): HistoryState {
       try {
         const all: PricePoint[] = [];
         let startTime = new Date("2017-08-01T00:00:00Z").getTime();
+        // Remember which Binance host answered so the pagination below sticks
+        // to it instead of re-probing a blocked host on every chunk.
+        let base: string | null = null;
 
         while (true) {
           if (cancelled) return;
-          const url = `${BINANCE_KLINES}?symbol=BTCUSDT&interval=1d&startTime=${startTime}&limit=${CHUNK}`;
-          const res = await fetch(url, { cache: "no-store", signal: abortController.signal });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const raw: Kline[] = await res.json();
+          const { klines: raw, base: usedBase } = await fetchKlines(
+            { interval: "1d", limit: CHUNK, startTime },
+            abortController.signal,
+            base,
+          );
+          base = usedBase;
           if (raw.length === 0) break;
 
           const parsed = raw.map(parseKline).filter((p): p is PricePoint => p !== null);
@@ -90,7 +93,7 @@ export function useBtcPriceHistory(): HistoryState {
           setState((s) => ({ ...s, loading: false }));
         }
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         if (!cancelled) {
           setState((s) => ({ ...s, loading: false, error: s.data.length === 0 }));
         }
