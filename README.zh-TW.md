@@ -5,7 +5,7 @@
 > **🌐 語言**
 > [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
 
-**目前版本：0.2.0** —— [更新日誌](CHANGELOG.md) · [版本發佈](https://github.com/SayangChun/BTC_FIRE_OS/releases)
+**目前版本：0.2.1** —— [更新日誌](CHANGELOG.md) · [版本發佈](https://github.com/SayangChun/BTC_FIRE_OS/releases)
 
 即時追蹤你的 BTC 投資組合，計算距離財務獨立、提前退休（FIRE）還有多遠，運行價格情境模擬，查看 AHR999 囤比特幣指標（經典版 + 3D 重校準版），並按市場區間規劃定投 —— 全部在一個快速、私密、零後端的 Web 應用中完成。
 

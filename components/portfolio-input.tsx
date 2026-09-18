@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Info, Plus, Sparkles, Trash2, Wallet } from "lucide-react";
+import { Info, Link2, LoaderCircle, Plus, Sparkles, Trash2, TriangleAlert, Wallet } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ import {
   unitToBtc,
 } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
+import { formatAddressShort } from "@/lib/holdings-sync";
+import type { SyncErrorReason } from "@/hooks/use-holdings-sync";
 import type { Translation } from "@/lib/i18n";
 import type { BtcUnit, BtcWallet } from "@/lib/types";
 
@@ -32,6 +34,10 @@ type PortfolioInputProps = {
   onBtcUnitChange: (unit: BtcUnit) => void;
   /** Fills a sample portfolio so a first-time visitor can explore quickly. */
   onLoadDemoData?: () => void;
+  /** Wallet ids with an in-flight on-chain balance refresh. */
+  syncingWalletIds?: string[];
+  /** walletId → reason the last refresh failed (undefined = last refresh was clean). */
+  syncErrors?: Record<string, SyncErrorReason>;
 };
 
 function HoldingsInput({
@@ -141,6 +147,8 @@ function WalletRow({
   onChange,
   onRemove,
   canRemove,
+  isSyncing,
+  syncError,
   t,
 }: {
   wallet: BtcWallet;
@@ -148,51 +156,77 @@ function WalletRow({
   onChange: (next: BtcWallet) => void;
   onRemove: () => void;
   canRemove: boolean;
+  isSyncing: boolean;
+  syncError?: SyncErrorReason;
   t: Translation["portfolio"];
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border bg-background p-3 sm:flex-row sm:items-end">
-      <div className="flex-1 space-y-1.5">
-        <Label className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.walletName}</Label>
-        <Input
-          value={wallet.name}
-          onChange={(e) => onChange({ ...wallet, name: e.target.value.slice(0, 40) })}
-          placeholder="Cold wallet / Exchange"
-        />
-      </div>
-
-      <div className="w-full space-y-1.5 sm:w-44">
-        <Label className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.holdings}</Label>
-        <HoldingsInput
-          btcHoldings={wallet.btc}
-          btcUnit={btcUnit}
-          onChange={(v) => onChange({ ...wallet, btc: v })}
-        />
-      </div>
-
-      <div className="w-full space-y-1.5 sm:w-40">
-        <Label className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.costBasis}</Label>
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted">
-            {currencySymbol("USD")}
-          </span>
-          <CostInput
-            value={wallet.costBasis}
-            onChange={(v) => onChange({ ...wallet, costBasis: v })}
+    <div className="rounded-md border border-border bg-background p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="flex-1 space-y-1.5">
+          <Label className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.walletName}</Label>
+          <Input
+            value={wallet.name}
+            onChange={(e) => onChange({ ...wallet, name: e.target.value.slice(0, 40) })}
+            placeholder="Cold wallet / Exchange"
           />
         </div>
+
+        <div className="w-full space-y-1.5 sm:w-44">
+          <Label className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.holdings}</Label>
+          <HoldingsInput
+            btcHoldings={wallet.btc}
+            btcUnit={btcUnit}
+            onChange={(v) => onChange({ ...wallet, btc: v })}
+          />
+        </div>
+
+        <div className="w-full space-y-1.5 sm:w-40">
+          <Label className="text-[10px] uppercase tracking-[0.06em] text-muted">{t.costBasis}</Label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted">
+              {currencySymbol("USD")}
+            </span>
+            <CostInput
+              value={wallet.costBasis}
+              onChange={(v) => onChange({ ...wallet, costBasis: v })}
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={!canRemove}
+          className="mt-1 flex h-9 w-9 items-center justify-center self-end rounded border border-border text-muted transition hover:bg-surface hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:mt-0"
+          aria-label={t.removeWallet}
+          title={t.removeWallet}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={!canRemove}
-        className="mt-1 flex h-9 w-9 items-center justify-center self-end rounded border border-border text-muted transition hover:bg-surface hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:mt-0"
-        aria-label={t.removeWallet}
-        title={t.removeWallet}
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {/* Provenance line for wallets whose amount comes from the chain rather
+          than from a keyboard. The panel below is where it is managed. */}
+      {wallet.source?.kind === "address" ? (
+        <div
+          className="mt-3 flex items-center gap-1.5 border-t border-border pt-2 text-[11px] text-muted"
+          title={t.sync.addressWalletHint}
+        >
+          <Link2 className="h-3 w-3 shrink-0 text-bitcoin" aria-hidden="true" />
+          <span className="truncate font-mono">
+            {formatAddressShort(wallet.source.address)}
+          </span>
+          {isSyncing ? (
+            <LoaderCircle className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" />
+          ) : syncError ? (
+            <span className="flex items-center gap-1 text-negative">
+              <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {syncError === "invalid" ? t.sync.syncFailedInvalid : t.sync.syncFailedNetwork}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -204,6 +238,8 @@ export function PortfolioInput({
   onWalletsChange,
   onBtcUnitChange,
   onLoadDemoData,
+  syncingWalletIds = [],
+  syncErrors,
 }: PortfolioInputProps) {
   const totalBtc = calculateTotalBtc(wallets);
   const weightedCost = calculateWeightedCostBasis(wallets);
@@ -330,6 +366,8 @@ export function PortfolioInput({
                 onChange={(next) => updateWallet(wallet.id, next)}
                 onRemove={() => removeWallet(wallet.id)}
                 canRemove={wallets.length > 1 || wallet.btc > 0 || wallet.costBasis > 0}
+                isSyncing={syncingWalletIds.includes(wallet.id)}
+                syncError={syncErrors?.[wallet.id]}
                 t={t}
               />
             ))

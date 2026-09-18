@@ -12,14 +12,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [0.2.1] - 2026-09-18
+
 ### Added
 
 - Version badge in the site footer (`vX.Y.Z`, linking to the matching release) plus Changelog and
   Releases links. The value is injected from `package.json` via `NEXT_PUBLIC_APP_VERSION`, so the
   footer, the git tag and this file can never drift apart.
+- **On-chain holdings sync** (`lib/holdings-sync.ts`, `hooks/use-holdings-sync.ts`,
+  `components/holdings-sync.tsx`). Bind a BTC address and its balance is read from the chain instead
+  of typed by hand: every 5 minutes automatically, or on demand per address. Balances come from an
+  ordered list of public Esplora explorers (`mempool.space` → `blockstream.info`), both of which send
+  `Access-Control-Allow-Origin: *`, so this runs entirely in the browser — no API route, no server
+  state, and no API key, private key or seed phrase is ever requested.
+- `BtcWallet` gained two optional fields, `source` (`{ kind: "address", address, chain }`) and
+  `lastSyncedAt`. A wallet without a `source` is hand-entered and is never auto-overwritten — which is
+  also what every wallet saved by an earlier version looks like. Syncing only writes `btc`; the cost
+  basis is never touched, because the chain cannot know what you paid. Unbinding keeps the last synced
+  amount and switches the wallet back to manual entry.
+- Address-bound wallet rows show a provenance line (address + sync state), and the portfolio module
+  gains a sync panel: bind form, per-address status (last synced time, active source, invalid-address
+  and unreachable-explorer errors), refresh and unbind actions, and a note on what leaves the browser.
 
 ### Changed
 
+- Address-bound wallets render a `<Skeleton />` instead of a number while their first balance is
+  being read, so a freshly bound address never flashes a misleading 0 BTC.
 - Documentation sync: all three READMEs now describe multi-source market data, demo data, editable
   scenario prices, the optional inflation rate, the chart cost line and the loading skeletons;
   `AGENTS.md` reflects the current architecture (single scrollable page, shared market-data layer,
@@ -29,11 +49,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - 网站页脚新增版本标识（`vX.Y.Z`，可点击跳转到对应发布页）以及「更新日志 / 版本发布」链接。
   版本号由 `package.json` 经 `NEXT_PUBLIC_APP_VERSION` 注入，因此页脚、git 标签与本文件始终一致。
+- **链上持仓同步**（`lib/holdings-sync.ts`、`hooks/use-holdings-sync.ts`、`components/holdings-sync.tsx`）。
+  绑定 BTC 地址后余额直接从链上读取，不再需要手工填写：每 5 分钟自动刷新一次，也可按地址手动刷新。
+  数据来自一组公开 Esplora 浏览器（`mempool.space` → `blockstream.info`），两者都返回
+  `Access-Control-Allow-Origin: *`，因此整套逻辑完全跑在浏览器里——没有 API 路由、没有服务端状态，
+  也从不索取 API 密钥、私钥或助记词。
+- `BtcWallet` 新增两个可选字段：`source`（`{ kind: "address", address, chain }`）与 `lastSyncedAt`。
+  没有 `source` 的钱包即视为手工填写，永远不会被自动覆盖——旧版本保存的钱包也正是这个形态。
+  同步只写入 `btc`，绝不改动成本价（链上无从得知你的买入价）。解除绑定会保留最后一次同步到的数量，
+  并把该钱包切回手动填写。
+- 地址绑定的钱包行会显示来源信息（地址 + 同步状态）；投资组合模块新增同步面板：绑定表单、
+  每个地址的状态（上次同步时间、当前数据来源、地址无效/无法连接的错误）、刷新与解除绑定操作，
+  以及一条说明哪些数据会离开浏览器的隐私提示。
 
 ### 变更
 
 - 文档同步：三份 README 均更新为当前功能（多源行情降级、演示数据、可编辑情景价格、可选通胀率、
   图表成本线、加载骨架屏）；`AGENTS.md` 更新为当前架构（单页无标签、统一行情层、版本注入、通胀约定）。
+- 地址绑定的钱包在首次读取余额期间以 `<Skeleton />` 占位，避免刚绑定就闪出一个误导性的 0 BTC。
 
 ---
 
@@ -150,4 +183,5 @@ is created on first use and all are optional.
 Initial development version (untagged).
 初始开发版本（未打标签）。
 
+[0.2.1]: https://github.com/SayangChun/BTC_FIRE_OS/releases/tag/v0.2.1
 [0.2.0]: https://github.com/SayangChun/BTC_FIRE_OS/releases/tag/v0.2.0

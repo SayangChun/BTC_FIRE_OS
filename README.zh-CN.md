@@ -5,7 +5,7 @@
 > **🌐 语言**
 > [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
 
-**当前版本：0.2.0** —— [更新日志](CHANGELOG.md) · [版本发布](https://github.com/SayangChun/BTC_FIRE_OS/releases)
+**当前版本：0.2.1** —— [更新日志](CHANGELOG.md) · [版本发布](https://github.com/SayangChun/BTC_FIRE_OS/releases)
 
 实时追踪你的 BTC 投资组合，计算距离财务独立、提前退休（FIRE）还有多远，运行价格场景模拟，查看 AHR999 囤比特币指标（经典版 + 3D 重校准版），并按市场区间规划定投 —— 全部在一个快速、私密、零后端的 Web 应用中完成。
 

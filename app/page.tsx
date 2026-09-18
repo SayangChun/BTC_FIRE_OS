@@ -18,6 +18,7 @@ import { DashboardMetrics } from "@/components/dashboard-metrics";
 import { DcaFirePlannerCard } from "@/components/dca-fire-planner-card";
 import { FireCalculator } from "@/components/fire-calculator";
 import { FutureFireCard } from "@/components/future-fire-card";
+import { HoldingsSync } from "@/components/holdings-sync";
 import { LogoMark } from "@/components/logo-mark";
 import { PortfolioInput } from "@/components/portfolio-input";
 import { DataSettings } from "@/components/data-settings";
@@ -68,6 +69,7 @@ import { useAhr999 } from "@/hooks/use-ahr999";
 
 
 import { useBtcPriceHistory } from "@/hooks/use-btc-price-history";
+import { useHoldingsSync } from "@/hooks/use-holdings-sync";
 import { usePersistentState } from "@/hooks/use-persistent-state";
 import type { Ahr999Recommendation, BtcScenarioPrices, BtcUnit, BtcWallet, Currency, DcaPlanInput, FireResult, OtherAssetsInput } from "@/lib/types";
 
@@ -231,6 +233,11 @@ export default function Home() {
     }));
     setWallets(cleaned);
   }, [setWallets]);
+
+  // On-chain balance sync for wallets bound to a BTC address. Only ever writes
+  // `btc` — cost basis stays whatever the user typed, since the chain has no
+  // idea what anyone paid for their coins.
+  const holdingsSync = useHoldingsSync(wallets, setWalletsClean);
 
   /**
    * One-click demo profile (see lib/demo-data.ts). Lets a first-time visitor see
@@ -587,14 +594,33 @@ export default function Home() {
               switch (id) {
                 case "portfolio":
                   return (
-                    <PortfolioInput
-                      wallets={wallets}
-                      btcUnit={btcUnit}
-                      t={t.portfolio}
-                      onWalletsChange={setWalletsClean}
-                      onBtcUnitChange={setBtcUnit}
-                      onLoadDemoData={applyDemoData}
-                    />
+                    <>
+                      <PortfolioInput
+                        wallets={wallets}
+                        btcUnit={btcUnit}
+                        t={t.portfolio}
+                        onWalletsChange={setWalletsClean}
+                        onBtcUnitChange={setBtcUnit}
+                        onLoadDemoData={applyDemoData}
+                        syncingWalletIds={holdingsSync.syncingIds}
+                        syncErrors={holdingsSync.errors}
+                      />
+                      <div className="mt-4">
+                        <HoldingsSync
+                          wallets={wallets}
+                          btcUnit={btcUnit}
+                          language={language}
+                          t={t.portfolio.sync}
+                          syncingIds={holdingsSync.syncingIds}
+                          errors={holdingsSync.errors}
+                          sources={holdingsSync.sources}
+                          onBind={holdingsSync.bindAddress}
+                          onUnbind={holdingsSync.unbind}
+                          onSyncAll={holdingsSync.syncAll}
+                          onSyncOne={holdingsSync.syncOne}
+                        />
+                      </div>
+                    </>
                   );
                 case "dashboard":
                   return (

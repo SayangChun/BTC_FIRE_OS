@@ -1,8 +1,23 @@
+/**
+ * Where a wallet's BTC figure comes from.
+ * A wallet without a `source` is hand-entered and is never auto-overwritten —
+ * which is also what every wallet saved by an older version looks like.
+ */
+export type WalletSource = {
+  kind: "address";
+  address: string;
+  chain: "bitcoin";
+};
+
 export type BtcWallet = {
   id: string;
   name: string;
   btc: number;
   costBasis: number;
+  /** Present only for wallets whose balance is refreshed from the chain. */
+  source?: WalletSource;
+  /** ISO timestamp of the last successful on-chain sync. */
+  lastSyncedAt?: string;
 };
 
 export type PortfolioInput = {

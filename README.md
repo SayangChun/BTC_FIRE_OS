@@ -5,7 +5,7 @@
 > **🌐 Languages**
 > [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
 
-**Current version: 0.2.0** — [Changelog](CHANGELOG.md) · [Releases](https://github.com/SayangChun/BTC_FIRE_OS/releases)
+**Current version: 0.2.1** — [Changelog](CHANGELOG.md) · [Releases](https://github.com/SayangChun/BTC_FIRE_OS/releases)
 
 Track your BTC portfolio in real time, calculate how close you are to Financial Independence, Retire Early (FIRE), run price scenarios, follow the AHR999 Bitcoin accumulation indicator (classic + 3D recalibrated), and plan DCA buys — all in a fast, private, zero-backend web app.
 
